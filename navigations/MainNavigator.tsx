@@ -10,10 +10,20 @@ const Tab = createBottomTabNavigator();
 
 function MyStack(){
     return(
-        <Stack.Navigator>
+        <Stack.Navigator
+        screenOptions={{
+            headerStyle:{
+                backgroundColor: "#233D4D",
+            },
+            headerTintColor: '#FFFFFF',
+            headerTitleStyle: {
+                fontWeight: 'bold',
+            },
+        }}
+        >
             <Stack.Screen name="Formulario" component={FormScreen}/>
             <Stack.Screen name="Login" component={LoginScreen}/>
-            <Stack.Screen name="Top" component={MyTab}/>
+            <Stack.Screen name="Tab" component={MyTab}/>
         </Stack.Navigator>
     )
 }
