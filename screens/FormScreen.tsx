@@ -255,13 +255,13 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   termsContainer: {
-    justifyContent: 'center',
+    
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
     marginTop: 5,
     zIndex: 1,
-    marginLeft:40
+    marginHorizontal:"15%"
   },
   termsSwitch: {
     transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }],
