@@ -26,7 +26,7 @@ export default function WelcomeScreen() {
 
                 {/* PARTE SUPERIOR: Textos */}
                 <View style={styles.topContainer}>
-                    <Text style={styles.title}>¡BIENVENIDO!</Text>
+                    <Text style={styles.title}>¡Hola Nuevamente!</Text>
                     <Text style={styles.subtitle}>Ingresa a tu cuenta o únete a nosotros</Text>
                 </View>
 
