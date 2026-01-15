@@ -33,7 +33,7 @@ export default function UserScreen({ navigation }: any) {
             >
 
                 {/* Título */}
-                <Text style={styles.mainTitle}>👤 PERFIL DE USUARIO</Text>
+                <Text style={styles.mainTitle}>👤 PERFIL DEL JUGADOR</Text>
                 <Text style={styles.subtitle}>Tu información personal</Text>
 
                 {/* Avatar/Círculo de usuario */}
