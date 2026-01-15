@@ -16,7 +16,7 @@ export default function PuntuacionesScreen({ navigation }: any) {
   const [puntuaciones, setPuntuaciones] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
 
-  // Cargar puntuaciones al iniciar (igual que leerPelicula en LeerScreen)
+  // Cargar puntuaciones al iniciar
   useEffect(() => {
     cargarPuntuaciones();
   }, []);
@@ -24,17 +24,17 @@ export default function PuntuacionesScreen({ navigation }: any) {
   const cargarPuntuaciones = () => {
     setCargando(true);
     
-    // Referencia a la base de datos (igual que en LeerScreen)
+    // Referencia a la base de datos
     const puntuacionesRef = ref(db, 'puntuaciones/');
     
-    // Opcional: ordenar por puntuación descendente y limitar a 50
+    // Ordenar por puntuación descendente y limitar a 50
     const consulta = query(puntuacionesRef, orderByChild('puntuacion'), limitToLast(50));
     
     onValue(consulta, (snapshot) => {
       const data = snapshot.val();
       
       if (data) {
-        // Convertir objeto a array (EXACTO como en LeerScreen)
+        // Convertir objeto a array
         let arrayData: any[] = Object.keys(data).map(id => ({
           id, ...data[id]
         }));
@@ -68,7 +68,7 @@ export default function PuntuacionesScreen({ navigation }: any) {
     }
   };
 
-  // Renderizar cada item (como Card en LeerScreen)
+  // Renderizar cada item
   const renderItem = ({ item, index }: { item: any, index: number }) => (
     <View style={[
       styles.puntuacionItem,

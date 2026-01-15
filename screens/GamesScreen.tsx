@@ -4,7 +4,7 @@ import { ref, set, push } from "firebase/database";
 import { db } from '../firebase/Config';
 
 // Configuración
-const TIEMPO_JUEGO = 12;
+const TIEMPO_JUEGO = 30;
 const PUNTOS_POR_INSECTO = 10;
 const MAX_INSECTOS = 10;
 const TAMANO_INSECTO = 70;
@@ -22,7 +22,7 @@ export default function GameScreen({ navigation, route }: any) {
     // Función para guardar puntuación
     const guardarPuntuacionEnFirebase = async (puntuacion: number, usuario: string) => {
         try {
-            // Usar push() para generar ID automático (como en clase usabas el ID manual)
+            // Usar push() para generar ID automático
             const nuevaPuntuacionRef = push(ref(db, 'puntuaciones/'));
 
             await set(nuevaPuntuacionRef, {
@@ -176,7 +176,7 @@ export default function GameScreen({ navigation, route }: any) {
         setJuegoActivo(false);
         Vibration.vibrate(200);
 
-        // GUARDAR EN FIREBASE (igual que en GuardarScreen)
+        // GUARDAR EN FIREBASE
         const resultado = await guardarPuntuacionEnFirebase(puntuacion, nombreUsuario);
 
         Alert.alert(
@@ -208,21 +208,6 @@ export default function GameScreen({ navigation, route }: any) {
                 }
             ]
         );
-    };
-
-    // Reiniciar juego
-    const reiniciarJuego = () => {
-        setTiempoRestante(TIEMPO_JUEGO);
-        setPuntuacion(0);
-        setInsectos([]);
-        setJuegoActivo(true);
-        juegoTerminadoRef.current = false;
-        insectoCounter.current = 0;
-        posicionesUsadas.current.clear();
-
-        setTimeout(() => crearInsecto(), 300);
-        setTimeout(() => crearInsecto(), 600);
-        setTimeout(() => crearInsecto(), 900);
     };
 
     // Volver al menú
