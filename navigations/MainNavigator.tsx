@@ -37,14 +37,24 @@ function MyStack() {
 
 function MyTab() {
     return (
-        <Tab.Navigator>
+        <Tab.Navigator
+        screenOptions={{
+                headerStyle: {
+                    backgroundColor: "#233D4D",
+                },
+                headerTintColor: '#FFFFFF',
+                headerTitleStyle: {
+                    fontWeight: 'bold',
+                },
+            }}
+        >
             <Tab.Screen name="Menú" component={JuegoScreen}
                 options={{ tabBarIcon: () => <MaterialIcons name="menu" size={28} color="#0059ff" /> }}
             />
             <Tab.Screen name="Juego" component={GameScreen}
                 options={{ tabBarIcon: () => <MaterialIcons name="sports-esports" size={28} color="#5B23FF" /> }}
             />
-            <Tab.Screen name="Puntuación" component={PuntuacionesScreen}
+            <Tab.Screen name="Puntuacion" component={PuntuacionesScreen}
                 options={{ tabBarIcon: () => <MaterialIcons name="leaderboard" size={28} color="#44ff00" /> }}
             />
         </Tab.Navigator>

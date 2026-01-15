@@ -1,5 +1,5 @@
 // screens/JuegoScreen.tsx (renombrar a MenuScreen.tsx o modificar)
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Vibration } from 'react-native';
 import React from 'react';
 
 export default function JuegoScreen({ navigation, route }: any) {
@@ -7,16 +7,23 @@ export default function JuegoScreen({ navigation, route }: any) {
   const nombreUsuario = route.params?.nombreUsuario || 'Jugador';
 
   const iniciarJuego = () => {
-    navigation.navigate('GameScreen', { nombreUsuario });
+    navigation.navigate("Juego", { nombreUsuario });
   };
 
   const verPuntuaciones = () => {
-    navigation.navigate('Puntuaciones');
+    navigation.navigate("Puntuacion", Vibration.vibrate(100));
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🦗 CAZA INSECTOS 🐞</Text>
+      <ScrollView
+      contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+
+      
+      <Text style={styles.title}>🦗CAZA INSECTOS🐞</Text>
       
       <View style={styles.welcomeContainer}>
         <Text style={styles.welcomeText}>¡Bienvenido,</Text>
@@ -47,7 +54,7 @@ export default function JuegoScreen({ navigation, route }: any) {
       >
         <Text style={styles.scoresButtonText}>🏆 VER PUNTUACIONES</Text>
       </TouchableOpacity>
-      
+      </ScrollView>
       
     </View>
   );
@@ -61,8 +68,14 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
   },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    
+  },
   title: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: 'bold',
     color: '#FE7F2D',
     textAlign: 'center',
