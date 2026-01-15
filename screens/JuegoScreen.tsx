@@ -48,9 +48,7 @@ export default function JuegoScreen({ navigation, route }: any) {
         <Text style={styles.scoresButtonText}>🏆 VER PUNTUACIONES</Text>
       </TouchableOpacity>
       
-      <Text style={styles.footerText}>
-        Desarrollado para Aplicaciones Móviles II
-      </Text>
+      
     </View>
   );
 }
