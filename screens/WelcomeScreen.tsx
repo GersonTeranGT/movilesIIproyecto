@@ -26,7 +26,7 @@ export default function WelcomeScreen() {
 
                 {/* PARTE SUPERIOR: Textos */}
                 <View style={styles.topContainer}>
-                    <Text style={styles.title}>¡Hola Nuevamente!</Text>
+                    <Text style={styles.title}>¡BIENVENIDO!</Text>
                     <Text style={styles.subtitle}>Ingresa a tu cuenta o únete a nosotros</Text>
                 </View>
 
@@ -60,7 +60,7 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,        
+        flex: 1,
     },
     topContainer: {
         flex: 0.50, // Ocupa el 50% superior de la pantalla
@@ -127,6 +127,6 @@ const styles = StyleSheet.create({
         color: '#2D3C59',
         fontWeight: 'bold',
         fontSize: 18,
-        
+
     },
 });
