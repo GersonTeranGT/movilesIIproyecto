@@ -3,13 +3,14 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import FormScreen from "../screens/FormScreen";
 import LoginScreen from "../screens/LoginScreen";
 import JuegoScreen from "../screens/JuegoScreen";
+import UserScreen from "../screens/UserScreen";
+import WelcomeScreen from "../screens/WelcomeScreen";
 import { NavigationContainer } from "@react-navigation/native";
 import GameScreen from "../screens/GamesScreen";
 import PuntuacionesScreen from "../screens/PuntuacionesScreen";
 
 //icons
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import WelcomeScreen from "../screens/WelcomeScreen";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -56,6 +57,9 @@ function MyTab() {
             />
             <Tab.Screen name="Puntuacion" component={PuntuacionesScreen}
                 options={{ tabBarIcon: () => <MaterialIcons name="leaderboard" size={28} color="#44ff00" /> }}
+            />
+            <Tab.Screen name="Perfil" component={UserScreen} 
+             options={{tabBarIcon: ()=> <MaterialIcons name="person" size={24} color="#3700ff" /> }}
             />
         </Tab.Navigator>
     )

@@ -1,4 +1,4 @@
-// screens/JuegoScreen.tsx (renombrar a MenuScreen.tsx o modificar)
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Vibration } from 'react-native';
 import React from 'react';
 
@@ -33,7 +33,7 @@ export default function JuegoScreen({ navigation, route }: any) {
       <View style={styles.instructionsContainer}>
         <Text style={styles.instructionsTitle}>📋 INSTRUCCIONES:</Text>
         <Text style={styles.instruction}>• Toca los insectos para ganar puntos</Text>
-        <Text style={styles.instruction}>• Tienes 60 segundos por partida</Text>
+        <Text style={styles.instruction}>• Tienes 30 segundos por partida</Text>
         <Text style={styles.instruction}>• Cada insecto vale 10 puntos</Text>
         <Text style={styles.instruction}>• ¡No dejes que se escapen!</Text>
         <Text style={styles.instruction}>• Pausa el juego si necesitas un descanso</Text>
