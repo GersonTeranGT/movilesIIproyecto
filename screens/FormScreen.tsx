@@ -5,6 +5,9 @@ import AlertPersonalizado from '../components/AlertPersonalizado'
 
 export default function FormScreen({ navigation }: any) {
 
+  const [nombre, setNombre] = useState("")
+  const [edad, setEdad] = useState(0)
+  const [correo, setCorreo] = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [acceptTerms, setAcceptTerms] = useState(false)
@@ -30,8 +33,10 @@ export default function FormScreen({ navigation }: any) {
       const { error } = await supabase
         .from('users')
         .insert({
+          nombre: nombre,
+          edad: edad,
+          correo: correo,
           username: username,
-          password: password
         });
 
       if (error) {
@@ -43,7 +48,7 @@ export default function FormScreen({ navigation }: any) {
           'success'
         );
         
-        // Navegar después de 2 segundos
+        //navegar despues de dos segundos
         setTimeout(() => {
           navigation.navigate("Login");
         }, 2000);
@@ -91,6 +96,39 @@ export default function FormScreen({ navigation }: any) {
 
       {/**contenedor de los inputs*/}
       <View style={styles.inputsContainer}>
+        <View style={styles.inputWrapper}>
+          <Text style={styles.inputLabel}>Nombre de usuario</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder='Ingresa tu nombre'
+            placeholderTextColor="#A0B3A8"
+            value={nombre}
+            onChangeText={(texto) => setNombre(texto)}
+          />
+          <View style={styles.inputUnderline} />
+        </View>
+        <View style={styles.inputWrapper}>
+          <Text style={styles.inputLabel}>Nombre de usuario</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder='Ingresa tu edad'
+            placeholderTextColor="#A0B3A8"
+            value={edad.toString()}
+            onChangeText={(texto) => setEdad(+texto)}
+          />
+          <View style={styles.inputUnderline} />
+        </View>
+        <View style={styles.inputWrapper}>
+          <Text style={styles.inputLabel}>Nombre de usuario</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder='Ingresa tu correo'
+            placeholderTextColor="#A0B3A8"
+            value={correo}
+            onChangeText={(texto) => setCorreo(texto)}
+          />
+          <View style={styles.inputUnderline} />
+        </View>
         <View style={styles.inputWrapper}>
           <Text style={styles.inputLabel}>Nombre de usuario</Text>
           <TextInput
