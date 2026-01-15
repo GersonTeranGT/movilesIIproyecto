@@ -275,7 +275,10 @@ export default function GameScreen({ navigation, route }: any) {
                         key={insecto.id}
                         style={[
                             styles.insecto,
-                            { left: insecto.x, top: insecto.y }
+                            {
+                                left: insecto.x as any,
+                                top: insecto.y as any
+                            }
                         ]}
                         onPress={() => eliminarInsecto(insecto.id)}
                         activeOpacity={0.7}
