@@ -1,10 +1,13 @@
-import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native'
+import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native'
 import React, { useState } from 'react'
 import { supabase } from '../service/supabase/config'
 import AlertPersonalizado from '../components/AlertPersonalizado'
 
 export default function FormScreen({ navigation }: any) {
 
+  const [nombre, setNombre] = useState("")
+  const [edad, setEdad] = useState(0)
+  const [correo, setCorreo] = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [acceptTerms, setAcceptTerms] = useState(false)
@@ -17,7 +20,7 @@ export default function FormScreen({ navigation }: any) {
 
 
   //funcion mostrarAlerta
-  const mostrarAlerta = (titulo: string, mensaje:string, tipo = "warning")=>{
+  const mostrarAlerta = (titulo: string, mensaje: string, tipo = "warning") => {
     setAlertTitle(titulo);
     setAlertMessage(mensaje);
     setAlertType(tipo);
@@ -30,20 +33,22 @@ export default function FormScreen({ navigation }: any) {
       const { error } = await supabase
         .from('users')
         .insert({
+          nombre: nombre,
+          edad: edad,
+          correo: correo,
           username: username,
-          password: password
         });
 
       if (error) {
         mostrarAlerta("Error", `No se pudo registrar: ${error.message}`, 'error');
       } else {
         mostrarAlerta(
-          "¡Registro Exitoso!", 
-          `Usuario: ${username}\nHa sido registrado correctamente.`, 
+          "¡Registro Exitoso!",
+          `Usuario: ${username}\nHa sido registrado correctamente.`,
           'success'
         );
-        
-        // Navegar después de 2 segundos
+
+        //navegar despues de dos segundos
         setTimeout(() => {
           navigation.navigate("Login");
         }, 2000);
@@ -57,8 +62,8 @@ export default function FormScreen({ navigation }: any) {
 
     if (!acceptTerms) {
       mostrarAlerta(
-        "Advertencia", 
-        "Debe aceptar los términos y condiciones.", 
+        "Advertencia",
+        "Debe aceptar los términos y condiciones.",
         'warning'
       );
       return;
@@ -84,82 +89,123 @@ export default function FormScreen({ navigation }: any) {
           <View style={styles.colorBlob3} />
         </View>
       </View>
-
-      {/**titulos de la ventana*/}
-      <Text style={styles.mainTitle}>Formulario de registro</Text>
-      <Text style={styles.subtitle}>Ingresa tus datos!!!</Text>
-
-      {/**contenedor de los inputs*/}
-      <View style={styles.inputsContainer}>
-        <View style={styles.inputWrapper}>
-          <Text style={styles.inputLabel}>Nombre de usuario</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder='Crea tu nombre de usuario'
-            placeholderTextColor="#A0B3A8"
-            value={username}
-            onChangeText={(texto) => setUsername(texto)}
-          />
-          <View style={styles.inputUnderline} />
-        </View>
-        <View style={styles.inputWrapper}>
-          <Text style={styles.inputLabel}>Contraseña</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder='Ingresa tu contraseña'
-            placeholderTextColor="#A0B3A8"
-            secureTextEntry={true}
-            value={password}
-            onChangeText={(texto) => setPassword(texto)}
-          />
-          <View style={styles.inputUnderline} />
-        </View>
-      </View>
-
-      {/**switch para terminos y condidciones*/}
-      <View style={styles.termsContainer}>
-        <Switch
-          value={acceptTerms}
-          onValueChange={setAcceptTerms}
-          trackColor={{ false: '#A0B3A8', true: '#FE7F2D' }}
-          thumbColor={acceptTerms ? '#F5FBE6' : '#F5FBE6'}
-          ios_backgroundColor="#A0B3A8"
-          style={styles.termsSwitch}
-        />
-        <Text style={styles.termsText}>
-          Acepto los{' '}
-          <Text style={styles.termsLink}>términos y condiciones</Text>
-        </Text>
-      </View>
-
-      {/**boton para registar se */}
-      <TouchableOpacity
-        style={styles.registerButton}
-        activeOpacity={0.8}
-        onPress={() => register()}
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.registerButtonText}>COMENZAR AVENTURA</Text>
-        <View style={styles.buttonGlow} />
-      </TouchableOpacity>
 
-      {/*decoracion*/}
-      <View style={styles.decorativeElements}>
-        <View style={styles.decorativeLine} />
-        <Text style={styles.decorativeText}>✦</Text>
-        <View style={styles.decorativeLine} />
-      </View>
-      {/* Texto adicional */}
-      <Text style={styles.footerText}>
-        Al registrarte, aceptas los términos y condiciones del juego
-      </Text>
+        {/**titulos de la ventana*/}
+        <Text style={styles.mainTitle}>Formulario de registro</Text>
+        <Text style={styles.subtitle}>Ingresa tus datos!!!</Text>
 
-      <AlertPersonalizado
-        visible= {showAlert}
-        onClose={() => setShowAlert(false)}
-        title={alertTitle}
-        message={alertMessage}
-        type={"info"}
-      />
+        {/**contenedor de los inputs*/}
+        <View style={styles.inputsContainer}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Nombre</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder='Ingresa tu nombre'
+              placeholderTextColor="#A0B3A8"
+              value={nombre}
+              onChangeText={(texto) => setNombre(texto)}
+            />
+            <View style={styles.inputUnderline} />
+          </View>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Edad</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder='Ingresa tu edad'
+              placeholderTextColor="#A0B3A8"
+              value={edad.toString()}
+              onChangeText={(texto) => setEdad(+texto)}
+              keyboardType='numeric'
+            />
+            <View style={styles.inputUnderline} />
+          </View>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Correo electrónico</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder='Ingresa tu correo'
+              placeholderTextColor="#A0B3A8"
+              value={correo}
+              onChangeText={(texto) => setCorreo(texto)}
+              keyboardType='email-address'
+            />
+            <View style={styles.inputUnderline} />
+          </View>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Nombre de usuario</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder='Crea tu nombre de usuario'
+              placeholderTextColor="#A0B3A8"
+              value={username}
+              onChangeText={(texto) => setUsername(texto)}
+            />
+            <View style={styles.inputUnderline} />
+          </View>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Contraseña</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder='Ingresa tu contraseña'
+              placeholderTextColor="#A0B3A8"
+              secureTextEntry={true}
+              value={password}
+              onChangeText={(texto) => setPassword(texto)}
+            />
+            <View style={styles.inputUnderline} />
+          </View>
+        </View>
+
+        {/**switch para terminos y condidciones*/}
+        <View style={styles.termsContainer}>
+          <Switch
+            value={acceptTerms}
+            onValueChange={setAcceptTerms}
+            trackColor={{ false: '#A0B3A8', true: '#FE7F2D' }}
+            thumbColor={acceptTerms ? '#F5FBE6' : '#F5FBE6'}
+            ios_backgroundColor="#A0B3A8"
+            style={styles.termsSwitch}
+          />
+          <Text style={styles.termsText}>
+            Acepto los{' '}
+            <Text style={styles.termsLink}>términos y condiciones</Text>
+          </Text>
+        </View>
+
+        {/**boton para registar se */}
+        <TouchableOpacity
+          style={styles.registerButton}
+          activeOpacity={0.8}
+          onPress={() => register()}
+        >
+          <Text style={styles.registerButtonText}>COMENZAR AVENTURA</Text>
+          <View style={styles.buttonGlow} />
+        </TouchableOpacity>
+
+        {/*decoracion*/}
+        <View style={styles.decorativeElements}>
+          <View style={styles.decorativeLine} />
+          <Text style={styles.decorativeText}>✦</Text>
+          <View style={styles.decorativeLine} />
+        </View>
+        {/* Texto adicional */}
+        <Text style={styles.footerText}>
+          Al registrarte, aceptas los términos y condiciones del juego
+        </Text>
+
+        <AlertPersonalizado
+          visible={showAlert}
+          onClose={() => setShowAlert(false)}
+          title={alertTitle}
+          message={alertMessage}
+          type={"info"}
+        />
+      </ScrollView>
     </View>
   )
 }
@@ -169,7 +215,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#233D4D',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   videoBackground: {
     position: 'absolute',
@@ -214,10 +260,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5FBE6',
     opacity: 0.2,
   },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   formContainer: {
     backgroundColor: 'rgba(35, 61, 77, 0.85)',
     borderRadius: 20,
     padding: 25,
+    marginHorizontal: 20,
+    marginVertical: 30,
     borderWidth: 2,
     borderColor: '#215E61',
     shadowColor: '#FE7F2D',
@@ -225,12 +277,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 20,
     elevation: 10,
+    width: '90%',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   mainTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
     color: '#F5FBE6',
+    marginTop: 19,
     marginBottom: 10,
     letterSpacing: 1.5,
     textShadowColor: 'rgba(254, 127, 45, 0.7)',
@@ -241,14 +297,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     color: '#FE7F2D',
-    marginBottom: 30,
+    marginBottom: 16,
     fontWeight: "500",
   },
   inputsContainer: {
-    width: "90%",
+    width: "100%",
   },
   inputWrapper: {
-    marginBottom: 25,
+    marginBottom: 20,
   },
   inputLabel: {
     fontSize: 14,
@@ -274,14 +330,34 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 1,
   },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  termsSwitch: {
+    transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }],
+    marginRight: 12,
+  },
+  termsText: {
+    fontSize: 14,
+    color: '#F5FBE6',
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  termsLink: {
+    color: '#FE7F2D',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
+  },
   registerButton: {
     backgroundColor: '#FE7F2D',
     borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 9,
     alignItems: 'center',
-    marginTop: 17,
-    marginBottom: 17,
+    marginTop: 1,
+    marginBottom: 10,
     overflow: 'hidden',
     shadowColor: '#FE7F2D',
     shadowOffset: { width: 0, height: 0 },
@@ -310,7 +386,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 20,
+    marginVertical: 15,
   },
   decorativeLine: {
     flex: 1,
@@ -328,30 +404,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 10,
     lineHeight: 16,
-  },
-  termsContainer: {
-
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    marginTop: 5,
-    zIndex: 1,
-    marginHorizontal: "15%"
-  },
-  termsSwitch: {
-    transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }],
-    marginRight: 12,
-
-  },
-  termsText: {
-    fontSize: 14,
-    color: '#F5FBE6',
-    flex: 1,
-    flexWrap: 'wrap',
-  },
-  termsLink: {
-    color: '#FE7F2D',
-    fontWeight: 'bold',
-    textDecorationLine: 'underline',
+    marginBottom: 60,
   },
 })
