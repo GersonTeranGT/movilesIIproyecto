@@ -1,14 +1,77 @@
 import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native'
 import React, { useState } from 'react'
+import { supabase } from '../service/supabase/config'
+import AlertPersonalizado from '../components/AlertPersonalizado'
 
 export default function FormScreen({ navigation }: any) {
 
-  const [nombreU, setNombreU] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [acceptTerms, setAcceptTerms] = useState(false)
 
-  function register(){
-    navigation.navigate("Login", Vibration.vibrate(100), Alert.alert("Aviso", `Usuario: ${nombreU} ha sido registrado correctamente.`))
+  //estados para el modal de alerta personalizado
+  const [showAlert, setShowAlert] = useState(false)
+  const [alertTitle, setAlertTitle] = useState("")
+  const [alertMessage, setAlertMessage] = useState("")
+  const [alertType, setAlertType] = useState("warning")
+
+
+  //funcion mostrarAlerta
+  const mostrarAlerta = (titulo: string, mensaje:string, tipo = "warning")=>{
+    setAlertTitle(titulo);
+    setAlertMessage(mensaje);
+    setAlertType(tipo);
+    setShowAlert(true);
+    Vibration.vibrate(100);
+  }
+
+  async function registrarUser() {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .insert({
+          username: username,
+          password: password
+        });
+
+      if (error) {
+        mostrarAlerta("Error", `No se pudo registrar: ${error.message}`, 'error');
+      } else {
+        mostrarAlerta(
+          "¡Registro Exitoso!", 
+          `Usuario: ${username}\nHa sido registrado correctamente.`, 
+          'success'
+        );
+        
+        // Navegar después de 2 segundos
+        setTimeout(() => {
+          navigation.navigate("Login");
+        }, 2000);
+      }
+    } catch (error) {
+      mostrarAlerta("Error", "Ocurrió un error inesperado", 'error');
+    }
+  }
+
+  function register() {
+
+    if (!acceptTerms) {
+      mostrarAlerta(
+        "Advertencia", 
+        "Debe aceptar los términos y condiciones.", 
+        'warning'
+      );
+      return;
+    }
+    // if (username.trim() === '' || password.trim() === '') {
+    //   mostrarAlerta(
+    //     "Campos incompletos", 
+    //     "Por favor completa todos los campos.", 
+    //     'warning'
+    //   );
+    //   return;
+    // }
+    registrarUser()
   }
 
   return (
@@ -34,7 +97,8 @@ export default function FormScreen({ navigation }: any) {
             style={styles.textInput}
             placeholder='Crea tu nombre de usuario'
             placeholderTextColor="#A0B3A8"
-            onChangeText={(texto)=> setNombreU(texto)}
+            value={username}
+            onChangeText={(texto) => setUsername(texto)}
           />
           <View style={styles.inputUnderline} />
         </View>
@@ -44,6 +108,9 @@ export default function FormScreen({ navigation }: any) {
             style={styles.textInput}
             placeholder='Ingresa tu contraseña'
             placeholderTextColor="#A0B3A8"
+            secureTextEntry={true}
+            value={password}
+            onChangeText={(texto) => setPassword(texto)}
           />
           <View style={styles.inputUnderline} />
         </View>
@@ -85,6 +152,14 @@ export default function FormScreen({ navigation }: any) {
       <Text style={styles.footerText}>
         Al registrarte, aceptas los términos y condiciones del juego
       </Text>
+
+      <AlertPersonalizado
+        visible= {showAlert}
+        onClose={() => setShowAlert(false)}
+        title={alertTitle}
+        message={alertMessage}
+        type={"info"}
+      />
     </View>
   )
 }
@@ -255,18 +330,18 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   termsContainer: {
-    
+
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
     marginTop: 5,
     zIndex: 1,
-    marginHorizontal:"15%"
+    marginHorizontal: "15%"
   },
   termsSwitch: {
     transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }],
     marginRight: 12,
-    
+
   },
   termsText: {
     fontSize: 14,

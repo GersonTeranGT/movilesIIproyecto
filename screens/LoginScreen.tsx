@@ -1,13 +1,46 @@
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native'
 import React, { useState } from 'react'
+import AlertPersonalizado from '../components/AlertPersonalizado'
 
 export default function LoginScreen({ navigation }: any) {
 
-  const [nombreU, setNombreU] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
 
-  function login(){
-    navigation.navigate("Tab", Vibration.vibrate(100), Alert.alert("Aviso", `Has iniciado sesión, bienvenido de nuevo: ${nombreU}`))
+
+  //estados para el modal de alerta personalizado
+  const [showAlert, setShowAlert] = useState(false)
+  const [alertTitle, setAlertTitle] = useState("")
+  const [alertMessage, setAlertMessage] = useState("")
+  const [alertType, setAlertType] = useState("success")
+
+
+  //mostraAlerta personalizada
+  const mostrarAlerta = (titulo: string, mensaje: string, tipo = 'success') => {
+    setAlertTitle(titulo)
+    setAlertMessage(mensaje)
+    setAlertType(tipo)
+    setShowAlert(true)
+    Vibration.vibrate(100)
+  }
+  function login() {
+    // if (username.trim() === '') {
+    //   mostrarAlerta("Campo vacío", "Por favor ingresa tu nombre de usuario", 'warning')
+    //   return
+    // }
+    //mostramos primero la alerta
+    mostrarAlerta("¡Bienvenido!", `Has iniciado sesión, bienvenido de nuevo: ${username}`)
+
+  }
+  //funicon para cerrar el alert
+  const cierreAlerta = () => {
+    setShowAlert(false)
+
+    //se navega si el login es verdadero o exitoso--- && username.trim() !== ''
+    if (alertType === 'success') {
+      navigation.navigate("Tab")
+    }
+    
   }
 
   return (
@@ -33,7 +66,7 @@ export default function LoginScreen({ navigation }: any) {
             placeholder='Nombre de usuario'
             placeholderTextColor="#A0B3A8"
             style={styles.textInput}
-            onChangeText={(texto)=> setNombreU(texto)}
+            onChangeText={(texto) => setUsername(texto)}
           />
           <View style={styles.inputUnderline} />
         </View>
@@ -43,6 +76,7 @@ export default function LoginScreen({ navigation }: any) {
           <TextInput
             placeholder='Contraseña'
             placeholderTextColor="#A0B3A8"
+            secureTextEntry={true}
             style={styles.textInput}
           />
           <View style={styles.inputUnderline} />
@@ -67,6 +101,15 @@ export default function LoginScreen({ navigation }: any) {
       <Text style={styles.footerText}>
         Al iniciar sesión, aceptas los términos y condiciones del juego
       </Text>
+
+      {/**alertPersonalizado */}
+      <AlertPersonalizado
+        visible={showAlert}
+        onClose={cierreAlerta}
+        title={alertTitle}
+        message={alertMessage}
+        type={'info'}
+      />
     </View>
   )
 }
