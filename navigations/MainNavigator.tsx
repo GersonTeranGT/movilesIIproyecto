@@ -9,6 +9,7 @@ import PuntuacionesScreen from "../screens/PuntuacionesScreen";
 
 //icons
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import UserScreen from "../screens/UserScreen";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -44,6 +45,9 @@ function MyTab() {
             />
             <Tab.Screen name="Puntuación" component={PuntuacionesScreen} 
              options={{tabBarIcon: ()=> <MaterialIcons name="leaderboard" size={24} color="#44ff00" /> }}
+            />
+            <Tab.Screen name="Perfil" component={UserScreen} 
+             options={{tabBarIcon: ()=> <MaterialIcons name="person" size={24} color="#3700ff" /> }}
             />
         </Tab.Navigator>
     )
