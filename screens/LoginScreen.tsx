@@ -1,6 +1,7 @@
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native'
 import React, { useState } from 'react'
 import AlertPersonalizado from '../components/AlertPersonalizado'
+import { supabase } from '../service/supabase/config'
 
 export default function LoginScreen({ navigation }: any) {
 
@@ -23,24 +24,63 @@ export default function LoginScreen({ navigation }: any) {
     setShowAlert(true)
     Vibration.vibrate(100)
   }
-  function login() {
-    // if (username.trim() === '') {
-    //   mostrarAlerta("Campo vacío", "Por favor ingresa tu nombre de usuario", 'warning')
-    //   return
-    // }
-    //mostramos primero la alerta
-    mostrarAlerta("¡Bienvenido!", `Has iniciado sesión, bienvenido de nuevo: ${username}`)
-
-  }
-  //funicon para cerrar el alert
-  const cierreAlerta = () => {
-    setShowAlert(false)
-
-    //se navega si el login es verdadero o exitoso--- && username.trim() !== ''
-    if (alertType === 'success') {
-      navigation.navigate("Tab")
+  async function login() {
+    if (username.trim() === '') {
+      mostrarAlerta("Campo vacío", "Por favor ingresa tu nombre de usuario", 'warning')
+      return
     }
 
+    if (password.trim() === '') {
+      mostrarAlerta("Campo vacío", "Por favor ingresa tu contraseña", 'warning')
+      return
+    }
+
+    try {
+      //paso 1: buscamos el email asociado al username
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('correo')
+        .eq('username', username)
+        .single();
+
+      if (userError || !userData) {
+        mostrarAlerta("Error", "Usuario no encontrado", 'error');
+        return;
+      }
+
+      //paso 2: hacer login con el email encontrado
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: userData.correo,
+        password: password,
+      });
+
+      console.log("Auth data:", authData);
+      console.log("Auth error:", authError);
+
+      if (authError) {
+        mostrarAlerta("Error", "Contraseña incorrecta", 'error');
+        return;
+      }
+
+      if (authData.session != null) {
+        mostrarAlerta("¡Bienvenido!", `Has iniciado sesión, bienvenido de nuevo: ${username}`, 'success');
+        //navegacion desde cierreAlerta cuando alertType sea success
+      }
+
+    } catch (error) {
+      console.error("Login error:", error);
+      mostrarAlerta("Error", "Ocurrió un error al iniciar sesión", 'error');
+    }
+  }
+
+  //funcion para cerrar el alert
+  const cierreAlerta = () => {
+    setShowAlert(false);
+
+    //navegar si el login fue exitoso
+    if (alertType === 'success') {
+      navigation.navigate("Tab");
+    }
   }
 
   return (
@@ -84,6 +124,7 @@ export default function LoginScreen({ navigation }: any) {
               placeholderTextColor="#A0B3A8"
               secureTextEntry={true}
               style={styles.textInput}
+              onChangeText={(texto) => setPassword(texto)}
             />
             <View style={styles.inputUnderline} />
           </View>
@@ -247,7 +288,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FE7F2D',
     borderRadius: 12,
     paddingVertical: 16,
-    paddingHorizontal:16,
+    paddingHorizontal: 16,
     alignItems: 'center',
     marginTop: 15,
     marginBottom: 15,

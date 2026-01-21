@@ -28,18 +28,42 @@ export default function FormScreen({ navigation }: any) {
     Vibration.vibrate(100);
   }
 
-  async function registrarUser() {
+  async function guardarUsuario() {
+    const { data, error } = await supabase.auth.signUp({
+      email: correo,
+      password: password,
+    })
+
+    if (data.user != null) {
+      //quitamos los guiones del ID para evitar problemas con la base de datos
+      let id = data.user.id.replace(/-/g, "") //expresion que quita todos los guiones
+
+      //pasamos limpio ida registrarUser
+      await registrarUser(id, username)
+
+      //mover la navegacion dentro del bloque de exito de registrarUser
+      //la navegacion se hara en registrarUser despuus de mostrar la alerta
+    } else {
+      Alert.alert("Error", error?.message || "Error al crear usuario");
+    }
+  }
+
+  async function registrarUser(uid: String, username: String) {
     try {
+      console.log("ID a insertar:", uid);     //depuracion
+
       const { error } = await supabase
         .from('users')
         .insert({
+          id: uid,  //usamos el id limpio
+          username: username,
           nombre: nombre,
           edad: edad,
           correo: correo,
-          username: username,
         });
 
       if (error) {
+        console.error("Error Supabase:", error);    //depuracion
         mostrarAlerta("Error", `No se pudo registrar: ${error.message}`, 'error');
       } else {
         mostrarAlerta(
@@ -54,12 +78,12 @@ export default function FormScreen({ navigation }: any) {
         }, 2000);
       }
     } catch (error) {
+      console.error("Error catch:", error);   //depuracion
       mostrarAlerta("Error", "Ocurrió un error inesperado", 'error');
     }
   }
 
   function register() {
-
     if (!acceptTerms) {
       mostrarAlerta(
         "Advertencia",
@@ -68,15 +92,29 @@ export default function FormScreen({ navigation }: any) {
       );
       return;
     }
-    // if (username.trim() === '' || password.trim() === '') {
-    //   mostrarAlerta(
-    //     "Campos incompletos", 
-    //     "Por favor completa todos los campos.", 
-    //     'warning'
-    //   );
-    //   return;
-    // }
-    registrarUser()
+
+    // Validaciones
+    if (!correo || !password || !username || !nombre) {
+      mostrarAlerta(
+        "Campos incompletos",
+        "Por favor completa todos los campos.",
+        'warning'
+      );
+      return;
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(correo)) {
+      mostrarAlerta(
+        "Email inválido",
+        "Por favor ingresa un email válido.",
+        'warning'
+      );
+      return;
+    }
+
+    guardarUsuario()
   }
 
   return (
