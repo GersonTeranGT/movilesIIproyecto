@@ -1,4 +1,3 @@
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Vibration } from 'react-native';
 import React from 'react';
 
