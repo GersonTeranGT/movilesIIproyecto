@@ -1,60 +1,140 @@
-﻿// screens/PuntuacionesScreen.tsx
-import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  TouchableOpacity,
-  Alert
-} from 'react-native';
+﻿import { StyleSheet, Text, View, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../service/supabase/config';
 import { ref, onValue, query, orderByChild, limitToLast } from "firebase/database";
 import { db } from '../firebase/Config';
 
 export default function PuntuacionesScreen({ navigation }: any) {
   const [puntuaciones, setPuntuaciones] = useState<any[]>([]);
-  const [cargando, setCargando] = useState(true);
+  const [users, setUsers] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [combinedData, setCombinedData] = useState<any[]>([]);
 
-  // Cargar puntuaciones al iniciar
   useEffect(() => {
-    cargarPuntuaciones();
+    loadAllData();
   }, []);
 
-  const cargarPuntuaciones = () => {
-    setCargando(true);
-    
-    // Referencia a la base de datos
-    const puntuacionesRef = ref(db, 'puntuaciones/');
-    
-    // Ordenar por puntuación descendente y limitar a 50
-    const consulta = query(puntuacionesRef, orderByChild('puntuacion'), limitToLast(50));
-    
-    onValue(consulta, (snapshot) => {
-      const data = snapshot.val();
-      
-      if (data) {
-        // Convertir objeto a array
-        let arrayData: any[] = Object.keys(data).map(id => ({
-          id, ...data[id]
-        }));
-        
-        // Ordenar por puntuación descendente
-        arrayData.sort((a, b) => b.puntuacion - a.puntuacion);
-        
-        setPuntuaciones(arrayData);
-      } else {
-        setPuntuaciones([]);
+  const loadAllData = async () => {
+    try {
+      // Cargar datos en paralelo
+      await Promise.all([
+        loadUsersFromSupabase(),
+        loadScoresFromFirebase()
+      ]);
+
+      // Combinar los datos después de cargar ambos
+      combineData();
+    } catch (error) {
+      console.error("Error cargando datos:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUsersFromSupabase = async () => {
+    try {
+      // Obtener usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id.replace(/-/g, ""))
+          .single();
+
+        if (userData && !userError) {
+          setCurrentUser(userData);
+        }
       }
-      
-      setCargando(false);
-    }, (error) => {
-      console.error('Error leyendo puntuaciones:', error);
-      setCargando(false);
+
+      // Obtener todos los usuarios
+      const { data: allUsers, error: allError } = await supabase
+        .from('users')
+        .select('id, username, nombre')
+        .order('username', { ascending: true });
+
+      if (allUsers && !allError) {
+        setUsers(allUsers);
+        return allUsers;
+      }
+    } catch (error) {
+      console.error("Error cargando usuarios de Supabase:", error);
+    }
+    return [];
+  };
+
+  const loadScoresFromFirebase = () => {
+    return new Promise((resolve) => {
+      const puntuacionesRef = ref(db, 'puntuaciones/');
+      const consulta = query(puntuacionesRef, orderByChild('puntuacion'), limitToLast(50));
+
+      onValue(consulta, (snapshot) => {
+        const data = snapshot.val();
+
+        if (data) {
+          // Convertir objeto a array
+          let arrayData: any[] = Object.keys(data).map(id => ({
+            id, ...data[id]
+          }));
+
+          // Ordenar por puntuación descendente
+          arrayData.sort((a, b) => b.puntuacion - a.puntuacion);
+
+          setPuntuaciones(arrayData);
+          resolve(arrayData);
+        } else {
+          setPuntuaciones([]);
+          resolve([]);
+        }
+      }, (error) => {
+        console.error('Error leyendo puntuaciones de Firebase:', error);
+        setPuntuaciones([]);
+        resolve([]);
+      });
     });
   };
 
-  // Función para formatear fecha
+  const combineData = () => {
+    if (puntuaciones.length === 0 || users.length === 0) {
+      setCombinedData([]);
+      return;
+    }
+
+    // Crear un mapa de usuarios por username
+    const usersMap = new Map();
+    users.forEach(user => {
+      usersMap.set(user.username, {
+        nombre: user.username,
+        id: user.id
+      });
+    });
+
+    // Combinar datos
+    const combined = puntuaciones.map(puntuacion => {
+      const usuario = puntuacion.usuario;
+      const userInfo = usersMap.get(usuario) || { nombre: usuario, id: null };
+
+      return {
+        ...puntuacion,
+        nombreCompleto: userInfo.nombre || usuario,
+        userId: userInfo.id,
+        esUsuarioActual: currentUser && currentUser.username === usuario
+      };
+    });
+
+    // Ordenar por puntuación descendente
+    combined.sort((a, b) => b.puntuacion - a.puntuacion);
+    setCombinedData(combined);
+  };
+
+  useEffect(() => {
+    if (puntuaciones.length > 0 && users.length > 0) {
+      combineData();
+    }
+  }, [puntuaciones, users, currentUser]);
+
   const formatearFecha = (fechaISO: string) => {
     try {
       const fecha = new Date(fechaISO);
@@ -68,25 +148,25 @@ export default function PuntuacionesScreen({ navigation }: any) {
     }
   };
 
-  // Renderizar cada item
   const renderItem = ({ item, index }: { item: any, index: number }) => (
     <View style={[
       styles.puntuacionItem,
-      index < 3 && styles.topTres // Destacar top 3
+      index < 3 && styles.topTres,
+      item.esUsuarioActual && styles.currentUserItem
     ]}>
       <View style={styles.posicionContainer}>
         <Text style={styles.posicion}>#{index + 1}</Text>
       </View>
-      
+
       <View style={styles.infoContainer}>
         <Text style={styles.usuario} numberOfLines={1}>
-          {item.usuario || 'Anónimo'}
+          {item.nombreCompleto || item.usuario}
         </Text>
         <Text style={styles.fecha}>
           {formatearFecha(item.fecha)}
         </Text>
       </View>
-      
+
       <View style={styles.puntosContainer}>
         <Text style={styles.puntos}>{item.puntuacion}</Text>
         <Text style={styles.puntosLabel}>pts</Text>
@@ -94,21 +174,40 @@ export default function PuntuacionesScreen({ navigation }: any) {
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.titulo}>🏆 MEJORES PUNTUACIONES</Text>
+          <Text style={styles.subtitulo}>
+            Cargando información...
+          </Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FE7F2D" />
+          <Text style={styles.loadingText}>Cargando puntuaciones...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const displayData = combinedData.length > 0 ? combinedData : puntuaciones;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.titulo}>🏆 MEJORES PUNTUACIONES</Text>
         <Text style={styles.subtitulo}>
-          Total: {puntuaciones.length} puntuaciones
+          {currentUser
+            ? `Tú eres: ${currentUser.username}`
+            : 'Inicia sesión para ver tu perfil'}
+        </Text>
+        <Text style={styles.subtitulo}>
+          Total: {displayData.length} puntuaciones
         </Text>
       </View>
 
-      {cargando ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FE7F2D" />
-          <Text style={styles.loadingText}>Cargando puntuaciones...</Text>
-        </View>
-      ) : puntuaciones.length === 0 ? (
+      {displayData.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>📭 No hay puntuaciones aún</Text>
           <Text style={styles.emptySubtext}>
@@ -117,7 +216,7 @@ export default function PuntuacionesScreen({ navigation }: any) {
         </View>
       ) : (
         <FlatList
-          data={puntuaciones}
+          data={displayData}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -132,10 +231,10 @@ export default function PuntuacionesScreen({ navigation }: any) {
         >
           <Text style={styles.buttonText}>← VOLVER</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.button, styles.refreshButton]}
-          onPress={cargarPuntuaciones}
+          onPress={loadAllData}
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>🔄 ACTUALIZAR</Text>
@@ -169,6 +268,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#A0B3A8',
     textAlign: 'center',
+    marginTop: 4,
   },
   loadingContainer: {
     flex: 1,
@@ -196,6 +296,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(254, 127, 45, 0.1)',
     borderWidth: 1,
     borderColor: '#FE7F2D',
+  },
+  currentUserItem: {
+    backgroundColor: 'rgba(33, 94, 97, 0.3)',
+    borderWidth: 2,
+    borderColor: '#215E61',
   },
   posicionContainer: {
     width: 50,
