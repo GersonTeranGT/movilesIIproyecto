@@ -1,6 +1,7 @@
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native'
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native'
 import React, { useState } from 'react'
 import AlertPersonalizado from '../components/AlertPersonalizado'
+import { supabase } from '../service/supabase/config'
 
 export default function LoginScreen({ navigation }: any) {
 
@@ -23,24 +24,63 @@ export default function LoginScreen({ navigation }: any) {
     setShowAlert(true)
     Vibration.vibrate(100)
   }
-  function login() {
-    // if (username.trim() === '') {
-    //   mostrarAlerta("Campo vacío", "Por favor ingresa tu nombre de usuario", 'warning')
-    //   return
-    // }
-    //mostramos primero la alerta
-    mostrarAlerta("¡Bienvenido!", `Has iniciado sesión, bienvenido de nuevo: ${username}`)
-
-  }
-  //funicon para cerrar el alert
-  const cierreAlerta = () => {
-    setShowAlert(false)
-
-    //se navega si el login es verdadero o exitoso--- && username.trim() !== ''
-    if (alertType === 'success') {
-      navigation.navigate("Tab")
+  async function login() {
+    if (username.trim() === '') {
+      mostrarAlerta("Campo vacío", "Por favor ingresa tu nombre de usuario", 'warning')
+      return
     }
-    
+
+    if (password.trim() === '') {
+      mostrarAlerta("Campo vacío", "Por favor ingresa tu contraseña", 'warning')
+      return
+    }
+
+    try {
+      //paso 1: buscamos el email asociado al username
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('correo')
+        .eq('username', username)
+        .single();
+
+      if (userError || !userData) {
+        mostrarAlerta("Error", "Usuario no encontrado", 'error');
+        return;
+      }
+
+      //paso 2: hacer login con el email encontrado
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: userData.correo,
+        password: password,
+      });
+
+      console.log("Auth data:", authData);
+      console.log("Auth error:", authError);
+
+      if (authError) {
+        mostrarAlerta("Error", "Contraseña incorrecta", 'error');
+        return;
+      }
+
+      if (authData.session != null) {
+        mostrarAlerta("¡Bienvenido!", `Has iniciado sesión, bienvenido de nuevo: ${username}`, 'success');
+        //navegacion desde cierreAlerta cuando alertType sea success
+      }
+
+    } catch (error) {
+      console.error("Login error:", error);
+      mostrarAlerta("Error", "Ocurrió un error al iniciar sesión", 'error');
+    }
+  }
+
+  //funcion para cerrar el alert
+  const cierreAlerta = () => {
+    setShowAlert(false);
+
+    //navegar si el login fue exitoso
+    if (alertType === 'success') {
+      navigation.navigate("Tab");
+    }
   }
 
   return (
@@ -54,53 +94,61 @@ export default function LoginScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/**titulo y subtitulo*/}
-      <Text style={styles.mainTitle}>Login</Text>
-      <Text style={styles.subtitle}>Ingresa tus datos para empezar</Text>
-
-      {/**contenedros de inputs*/}
-      <View style={styles.inputsContainer}>
-        <View style={styles.inputWrapper}>
-          <Text style={styles.inputLabel}>Nombre de usuario</Text>
-          <TextInput
-            placeholder='Nombre de usuario'
-            placeholderTextColor="#A0B3A8"
-            style={styles.textInput}
-            onChangeText={(texto) => setUsername(texto)}
-          />
-          <View style={styles.inputUnderline} />
-        </View>
-
-        <View style={styles.inputWrapper}>
-          <Text style={styles.inputLabel}>Contraseña</Text>
-          <TextInput
-            placeholder='Contraseña'
-            placeholderTextColor="#A0B3A8"
-            secureTextEntry={true}
-            style={styles.textInput}
-          />
-          <View style={styles.inputUnderline} />
-        </View>
-      </View>
-      {/**boton para inresar*/}
-      <TouchableOpacity
-        style={styles.loginButton}
-        activeOpacity={0.8}
-        onPress={() => login()}
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.loginButtonText}>INGRESAR</Text>
-      </TouchableOpacity>
+        {/**titulo y subtitulo*/}
+        <Text style={styles.mainTitle}>Login</Text>
+        <Text style={styles.subtitle}>Ingresa tus datos para empezar</Text>
 
-      {/**decoracion*/}
-      <View style={styles.decorativeElements}>
-        <View style={styles.decorativeLine} />
-        <Text style={styles.decorativeText}>⚔️</Text>
-        <View style={styles.decorativeLine} />
-      </View>
-      {/**texto adicional*/}
-      <Text style={styles.footerText}>
-        Al iniciar sesión, aceptas los términos y condiciones del juego
-      </Text>
+
+        {/**contenedros de inputs*/}
+        <View style={styles.inputsContainer}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Nombre de usuario</Text>
+            <TextInput
+              placeholder='Nombre de usuario'
+              placeholderTextColor="#A0B3A8"
+              style={styles.textInput}
+              onChangeText={(texto) => setUsername(texto)}
+            />
+            <View style={styles.inputUnderline} />
+          </View>
+
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Contraseña</Text>
+            <TextInput
+              placeholder='Contraseña'
+              placeholderTextColor="#A0B3A8"
+              secureTextEntry={true}
+              style={styles.textInput}
+              onChangeText={(texto) => setPassword(texto)}
+            />
+            <View style={styles.inputUnderline} />
+          </View>
+        </View>
+        {/**boton para inresar*/}
+        <TouchableOpacity
+          style={styles.loginButton}
+          activeOpacity={0.8}
+          onPress={() => login()}
+        >
+          <Text style={styles.loginButtonText}>INGRESAR</Text>
+        </TouchableOpacity>
+
+        {/**decoracion*/}
+        <View style={styles.decorativeElements}>
+          <View style={styles.decorativeLine} />
+          <Text style={styles.decorativeText}>⚔️</Text>
+          <View style={styles.decorativeLine} />
+        </View>
+        {/**texto adicional*/}
+        <Text style={styles.footerText}>
+          Al iniciar sesión, aceptas los términos y condiciones del juego
+        </Text>
+      </ScrollView>
 
       {/**alertPersonalizado */}
       <AlertPersonalizado
@@ -110,6 +158,7 @@ export default function LoginScreen({ navigation }: any) {
         message={alertMessage}
         type={'info'}
       />
+
     </View>
   )
 }
@@ -164,6 +213,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5FBE6',
     opacity: 0.2,
   },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  formContainer: {
+    backgroundColor: 'rgba(35, 61, 77, 0.85)',
+    borderRadius: 20,
+    padding: 25,
+    marginHorizontal: 20,
+    borderWidth: 2,
+    borderColor: '#215E61',
+    shadowColor: '#FE7F2D',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+    width: '90%',
+    maxWidth: 400,
+    alignSelf: 'center',
+  },
   mainTitle: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -174,7 +245,6 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(254, 127, 45, 0.7)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
-    zIndex: 1,
   },
   subtitle: {
     fontSize: 16,
@@ -182,15 +252,13 @@ const styles = StyleSheet.create({
     color: '#FE7F2D',
     marginBottom: 30,
     fontWeight: '500',
-    zIndex: 1,
   },
   inputsContainer: {
-    width: '90%',
-    marginBottom: 20,
-    zIndex: 1,
+    width: '100%',
+    marginBottom: 15,
   },
   inputWrapper: {
-    marginBottom: 25,
+    marginBottom: 20,
   },
   inputLabel: {
     fontSize: 14,
@@ -220,9 +288,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FE7F2D',
     borderRadius: 12,
     paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 15,
     marginBottom: 15,
     overflow: 'hidden',
     shadowColor: '#FE7F2D',
@@ -231,7 +299,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
     position: 'relative',
-    zIndex: 1,
   },
   loginButtonText: {
     fontSize: 18,
@@ -251,8 +318,7 @@ const styles = StyleSheet.create({
   },
   registerLink: {
     alignItems: 'center',
-    marginBottom: 20,
-    zIndex: 1,
+    marginBottom: 15,
   },
   registerLinkText: {
     fontSize: 14,
@@ -263,8 +329,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 20,
-    zIndex: 1,
+    marginVertical: 15,
   },
   decorativeLine: {
     flex: 1,
@@ -282,6 +347,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 10,
     lineHeight: 16,
-    zIndex: 1,
-  }
+    marginBottom: 10,
+  },
+  forgotPassword: {
+    alignItems: 'flex-end',
+    marginBottom: 20,
+    marginTop: -5,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    color: '#FE7F2D',
+    textDecorationLine: 'underline',
+    fontWeight: '500',
+  },
 })

@@ -1,54 +1,88 @@
-// screens/JuegoScreen.tsx (renombrar a MenuScreen.tsx o modificar)
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import React from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Vibration } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../service/supabase/config';
 
-export default function JuegoScreen({ navigation, route }: any) {
-  // Obtener nombre de usuario del login
-  const nombreUsuario = route.params?.nombreUsuario || 'Jugador';
+export default function JuegoScreen({ navigation }: any) {
+  const [userName, setUserName] = useState('Jugador');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadUserName();
+  }, []);
+
+  const loadUserName = async () => {
+    try {
+      // Obtener usuario autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Buscar el nombre de usuario
+        const { data, error } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', user.id.replace(/-/g, ""))
+          .single();
+          
+        if (data && !error) {
+          setUserName(data.username);
+        }
+      }
+    } catch (error) {
+      console.error("Error cargando nombre:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const iniciarJuego = () => {
-    navigation.navigate('GameScreen', { nombreUsuario });
+    navigation.navigate("Juego", { nombreUsuario: userName });
   };
 
   const verPuntuaciones = () => {
-    navigation.navigate('Puntuaciones');
+    navigation.navigate("Puntuacion");
+    Vibration.vibrate(100);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🦗 CAZA INSECTOS 🐞</Text>
-      
-      <View style={styles.welcomeContainer}>
-        <Text style={styles.welcomeText}>¡Bienvenido,</Text>
-        <Text style={styles.userName}>{nombreUsuario}!</Text>
-      </View>
-      
-      <View style={styles.instructionsContainer}>
-        <Text style={styles.instructionsTitle}>📋 INSTRUCCIONES:</Text>
-        <Text style={styles.instruction}>• Toca los insectos para ganar puntos</Text>
-        <Text style={styles.instruction}>• Tienes 60 segundos por partida</Text>
-        <Text style={styles.instruction}>• Cada insecto vale 10 puntos</Text>
-        <Text style={styles.instruction}>• ¡No dejes que se escapen!</Text>
-        <Text style={styles.instruction}>• Pausa el juego si necesitas un descanso</Text>
-      </View>
-      
-      <TouchableOpacity
-        style={styles.startButton}
-        onPress={iniciarJuego}
-        activeOpacity={0.8}
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.startButtonText}>🎮 EMPEZAR JUEGO</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={styles.scoresButton}
-        onPress={verPuntuaciones}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.scoresButtonText}>🏆 VER PUNTUACIONES</Text>
-      </TouchableOpacity>
-      
-      
+
+        <Text style={styles.title}>🦗CAZA INSECTOS🐞</Text>
+        
+        <View style={styles.welcomeContainer}>
+          <Text style={styles.welcomeText}>¡Bienvenido,</Text>
+          <Text style={styles.userName}>{userName}!</Text>
+        </View>
+        
+        <View style={styles.instructionsContainer}>
+          <Text style={styles.instructionsTitle}>📋 INSTRUCCIONES:</Text>
+          <Text style={styles.instruction}>• Toca los insectos para ganar puntos</Text>
+          <Text style={styles.instruction}>• Tienes 30 segundos por partida</Text>
+          <Text style={styles.instruction}>• Cada insecto vale 10 puntos</Text>
+          <Text style={styles.instruction}>• ¡No dejes que se escapen!</Text>
+          <Text style={styles.instruction}>• Pausa el juego si necesitas un descanso</Text>
+        </View>
+        
+        <TouchableOpacity
+          style={styles.startButton}
+          onPress={iniciarJuego}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.startButtonText}>🎮 EMPEZAR JUEGO</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.scoresButton}
+          onPress={verPuntuaciones}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.scoresButtonText}>🏆 VER PUNTUACIONES</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
@@ -57,40 +91,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#233D4D',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FE7F2D',
     textAlign: 'center',
+    color: '#FE7F2D',
     marginBottom: 30,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 3,
+    textShadowColor: 'rgba(254, 127, 45, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+    letterSpacing: 1,
   },
   welcomeContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 30,
   },
   welcomeText: {
-    fontSize: 20,
+    fontSize: 24,
     color: '#F5FBE6',
-    marginBottom: 5,
+    textAlign: 'center',
   },
   userName: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#FE7F2D',
+    textAlign: 'center',
+    marginTop: 5,
   },
   instructionsContainer: {
     backgroundColor: 'rgba(44, 74, 94, 0.8)',
-    padding: 25,
     borderRadius: 15,
-    width: '100%',
-    marginBottom: 40,
+    padding: 20,
+    marginBottom: 30,
+    borderWidth: 2,
+    borderColor: '#215E61',
   },
   instructionsTitle: {
     fontSize: 20,
@@ -103,47 +144,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#F5FBE6',
     marginBottom: 10,
-    lineHeight: 22,
+    paddingLeft: 10,
   },
   startButton: {
     backgroundColor: '#FE7F2D',
-    width: '100%',
-    paddingVertical: 18,
     borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 30,
     alignItems: 'center',
     marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowColor: '#FE7F2D',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 10,
     elevation: 8,
   },
   startButtonText: {
-    color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold',
-    letterSpacing: 1.5,
+    color: '#233D4D',
+    letterSpacing: 1,
   },
   scoresButton: {
-    backgroundColor: '#2C4A5E',
-    width: '100%',
-    paddingVertical: 15,
+    backgroundColor: '#215E61',
     borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 30,
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 30,
     borderWidth: 2,
     borderColor: '#FE7F2D',
   },
   scoresButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    letterSpacing: 1.5,
-  },
-  footerText: {
-    color: '#A0B3A8',
-    fontSize: 14,
-    marginTop: 'auto',
-    textAlign: 'center',
+    color: '#F5FBE6',
+    letterSpacing: 1,
   },
 });

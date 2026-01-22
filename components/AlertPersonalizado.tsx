@@ -62,14 +62,14 @@ export default function AlertPersonalizado({ visible, onClose, title, message, t
                     styles.alertBox,
                     { borderColor: currentConfig.borderColor }
                 ]}>
-                    {/* Icono */}
+                    {/*icono*/}
                     <View style={styles.alertIcon}>
                         <Text style={styles.alertIconText}>
                             {currentConfig.icon}
                         </Text>
                     </View>
 
-                    {/* Título */}
+                    {/*titulo*/}
                     <Text style={[
                         styles.alertTitleText,
                         { color: currentConfig.titleColor }
@@ -77,12 +77,12 @@ export default function AlertPersonalizado({ visible, onClose, title, message, t
                         {title}
                     </Text>
 
-                    {/* Mensaje */}
+                    {/*mensaje*/}
                     <Text style={styles.alertMessageText}>
                         {message}
                     </Text>
 
-                    {/* Botón */}
+                    {/*boton*/}
                     <TouchableOpacity
                         style={[
                             styles.alertButton,
@@ -96,7 +96,7 @@ export default function AlertPersonalizado({ visible, onClose, title, message, t
                         </Text>
                     </TouchableOpacity>
 
-                    {/* Decoraciones de esquina */}
+                    {/*decoraciones de esquina*/}
                     <View style={[styles.corner, styles.cornerTopLeft]} />
                     <View style={[styles.corner, styles.cornerTopRight]} />
                     <View style={[styles.corner, styles.cornerBottomLeft]} />
