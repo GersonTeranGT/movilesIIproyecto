@@ -28,8 +28,8 @@ function MyStack() {
             }}
         >
             <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="Formulario" component={FormScreen} />
-            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Formulario" component={FormScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Tab" component={MyTab} options={{ headerShown: false }}/>
         </Stack.Navigator>
     )
@@ -37,9 +37,9 @@ function MyStack() {
 
 function MyTab() {
     return (
-        <Tab.Navigator>
-            <Tab.Screen name="Menú" component={JuegoScreen}
-                options={{ tabBarIcon: () => <MaterialIcons name="menu" size={28} color="#0059ff" /> }}
+        <Tab.Navigator >
+            <Tab.Screen name="Menú" component={JuegoScreen} 
+                options={{ tabBarIcon: () => <MaterialIcons name="menu" size={28} color="#0059ff" /> } }
             />
             <Tab.Screen name="Juego" component={GameScreen}
                 options={{ tabBarIcon: () => <MaterialIcons name="sports-esports" size={28} color="#5B23FF" /> }}
