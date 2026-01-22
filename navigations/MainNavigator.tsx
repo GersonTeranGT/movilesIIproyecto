@@ -31,7 +31,7 @@ function MyStack() {
             <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Formulario" component={FormScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="Tab" component={MyTab} options={{ headerShown: false }}/>
+            <Stack.Screen name="Tab" component={MyTab} options={{ headerShown: false }} />
         </Stack.Navigator>
     )
 }
@@ -39,13 +39,18 @@ function MyStack() {
 function MyTab() {
     return (
         <Tab.Navigator
-        screenOptions={{
+            screenOptions={{
+                tabBarStyle: {
+                    backgroundColor: '#233D4D',
+                    borderTopColor: 'transparent',
+                },
                 headerStyle: {
-                    backgroundColor: "#233D4D",
+                    backgroundColor: '#233D4D',
                 },
                 headerTintColor: '#FFFFFF',
                 headerTitleStyle: {
                     fontWeight: 'bold',
+                    textAlign: 'center',
                 },
             }}
         >
@@ -58,8 +63,8 @@ function MyTab() {
             <Tab.Screen name="Puntuacion" component={PuntuacionesScreen}
                 options={{ tabBarIcon: () => <MaterialIcons name="leaderboard" size={28} color="#44ff00" /> }}
             />
-            <Tab.Screen name="Perfil" component={UserScreen} 
-             options={{tabBarIcon: ()=> <MaterialIcons name="person" size={24} color="#3700ff" /> }}
+            <Tab.Screen name="Perfil" component={UserScreen}
+                options={{ tabBarIcon: () => <MaterialIcons name="person" size={24} color="#3700ff" /> }}
             />
         </Tab.Navigator>
     )
