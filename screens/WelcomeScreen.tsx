@@ -18,7 +18,7 @@ export default function WelcomeScreen() {
 
     return (
         <ImageBackground
-            source={require('../../movilesIIproyecto/img/fondo_plata.jpg')}
+            source={require('../../movilesIIproyecto/img/fondo-gamer.jpg')}
             style={styles.container}
             resizeMode="cover" // Esto hace que la imagen cubra toda la pantalla sin deformarse
         >
@@ -73,11 +73,11 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#FFF5F2',
         marginBottom: 10,
-        marginTop: 150,
+        
     },
     subtitle: {
         fontSize: 16,
-        color: '#2D3C59',
+        color: '#4c5059',
         fontWeight: 'bold',
 
     },
