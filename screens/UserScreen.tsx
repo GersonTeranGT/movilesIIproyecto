@@ -1,24 +1,87 @@
-﻿import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+﻿import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../service/supabase/config';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 export default function UserScreen({ navigation }: any) {
-    // Datos de ejemplo (quemados)
-    const usuario = {
-        nombre: "Carlos Martínez",
-        username: "carlos_gamer",
-        edad: 25,
-        correo: "carlos.martinez@email.com",
-        fechaRegistro: "15/11/2024",
-        puntuacionMaxima: 450,
-        partidasJugadas: 18,
-        nivel: "Experto",
-        avatar: "👤"
+    const [userData, setUserData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadUserData();
+    }, []);
+
+    const loadUserData = async () => {
+        try {
+            // Obtener usuario autenticado
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user) {
+                // Buscar datos del usuario en la tabla 'users'
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', user.id.replace(/-/g, ""))
+                    .single();
+
+                if (data && !error) {
+                    setUserData(data);
+                } else {
+                    console.error("Error al obtener datos:", error);
+                }
+            }
+        } catch (error) {
+            console.error("Error cargando datos:", error);
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigation.navigate('Login');
+    };
+
+    if (loading) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.videoBackground}>
+                    <View style={styles.animatedBackground}>
+                        <View style={styles.colorBlob1} />
+                        <View style={styles.colorBlob2} />
+                        <View style={styles.colorBlob3} />
+                    </View>
+                </View>
+                <View style={styles.centeredContent}>
+                    <ActivityIndicator size="large" color="#FE7F2D" />
+                    <Text style={styles.loadingText}>Cargando datos...</Text>
+                </View>
+            </View>
+        );
+    }
+
+    if (!userData) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.videoBackground}>
+                    <View style={styles.animatedBackground}>
+                        <View style={styles.colorBlob1} />
+                        <View style={styles.colorBlob2} />
+                        <View style={styles.colorBlob3} />
+                    </View>
+                </View>
+                <View style={styles.centeredContent}>
+                    <Text style={styles.errorText}>No se encontraron datos del usuario</Text>
+                    <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
+                        <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
-            {/* Fondo */}
             <View style={styles.videoBackground}>
                 <View style={styles.animatedBackground}>
                     <View style={styles.colorBlob1} />
@@ -27,109 +90,52 @@ export default function UserScreen({ navigation }: any) {
                 </View>
             </View>
 
-            <ScrollView
-                contentContainerStyle={styles.scrollContainer}
-                showsVerticalScrollIndicator={false}
-            >
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
+                <Text style={styles.mainTitle}>Perfil de Usuario</Text>
+                <Text style={styles.subtitle}>Tus datos registrados</Text>
 
-                {/* Título */}
-                <Text style={styles.mainTitle}>👤 PERFIL DEL JUGADOR</Text>
-                <Text style={styles.subtitle}>Tu información personal</Text>
-
-                {/* Avatar/Círculo de usuario */}
-                <View style={styles.avatarContainer}>
-                    <View style={styles.avatarCircle}>
-                        <Text style={styles.avatarText}>{usuario.avatar}</Text>
-                    </View>
-                    <Text style={styles.userName}>{usuario.nombre}</Text>
-                    <Text style={styles.userUsername}>@{usuario.username}</Text>
-                </View>
-
-                {/* Tarjeta de información personal */}
-                <View style={styles.infoCard}>
-                    <Text style={styles.cardTitle}>📋 Información Personal</Text>
-
-                    <View style={styles.infoRow}>
-                        <Ionicons name="person-outline" size={20} color="#FE7F2D" />
-                        <Text style={styles.infoLabel}>Nombre:</Text>
-                        <Text style={styles.infoValue}>{usuario.nombre}</Text>
-                    </View>
-
-                    <View style={styles.infoRow}>
-                        <Ionicons name="calendar-outline" size={20} color="#FE7F2D" />
-                        <Text style={styles.infoLabel}>Edad:</Text>
-                        <Text style={styles.infoValue}>{usuario.edad} años</Text>
-                    </View>
-
-                    <View style={styles.infoRow}>
-                        <Ionicons name="mail-outline" size={20} color="#FE7F2D" />
-                        <Text style={styles.infoLabel}>Correo:</Text>
-                        <Text style={styles.infoValue}>{usuario.correo}</Text>
-                    </View>
-
-                    <View style={styles.infoRow}>
-                        <Ionicons name="at-circle-outline" size={20} color="#FE7F2D" />
-                        <Text style={styles.infoLabel}>Usuario:</Text>
-                        <Text style={styles.infoValue}>@{usuario.username}</Text>
-                    </View>
-                </View>
-
-                {/* Tarjeta de estadísticas del juego */}
-                <View style={styles.infoCard}>
-                    <Text style={styles.cardTitle}>🎮 Estadísticas de Juego</Text>
-
-                    <View style={styles.statsContainer}>
-                        <View style={styles.statItem}>
-                            <View style={[styles.statCircle, { backgroundColor: 'rgba(254, 127, 45, 0.2)' }]}>
-                                <Text style={styles.statNumber}>{usuario.puntuacionMaxima}</Text>
-                            </View>
-                            <Text style={styles.statLabel}>Puntuación Máxima</Text>
+                <View style={styles.profileCard}>
+                    <View style={styles.infoSection}>
+                        <MaterialIcons name="person" size={24} color="#FE7F2D" style={styles.icon} />
+                        <View style={styles.infoTextContainer}>
+                            <Text style={styles.infoLabel}>Nombre completo</Text>
+                            <Text style={styles.infoValue}>{userData.nombre || 'No especificado'}</Text>
                         </View>
+                    </View>
 
-                        <View style={styles.statItem}>
-                            <View style={[styles.statCircle, { backgroundColor: 'rgba(33, 94, 97, 0.2)' }]}>
-                                <Text style={styles.statNumber}>{usuario.partidasJugadas}</Text>
-                            </View>
-                            <Text style={styles.statLabel}>Partidas Jugadas</Text>
+                    <View style={styles.infoSection}>
+                        <MaterialIcons name="person-outline" size={24} color="#FE7F2D" style={styles.icon} />
+                        <View style={styles.infoTextContainer}>
+                            <Text style={styles.infoLabel}>Nombre de usuario</Text>
+                            <Text style={styles.infoValue}>{userData.username || 'No especificado'}</Text>
                         </View>
+                    </View>
 
-                        <View style={styles.statItem}>
-                            <View style={[styles.statCircle, { backgroundColor: 'rgba(76, 175, 80, 0.2)' }]}>
-                                <Text style={styles.statNumber}>{usuario.nivel}</Text>
-                            </View>
-                            <Text style={styles.statLabel}>Nivel</Text>
+                    <View style={styles.infoSection}>
+                        <MaterialIcons name="email" size={24} color="#FE7F2D" style={styles.icon} />
+                        <View style={styles.infoTextContainer}>
+                            <Text style={styles.infoLabel}>Correo electrónico</Text>
+                            <Text style={styles.infoValue}>{userData.correo || 'No especificado'}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.infoSection}>
+                        <MaterialIcons name="cake" size={24} color="#FE7F2D" style={styles.icon} />
+                        <View style={styles.infoTextContainer}>
+                            <Text style={styles.infoLabel}>Edad</Text>
+                            <Text style={styles.infoValue}>{userData.edad || 'No especificado'} años</Text>
                         </View>
                     </View>
                 </View>
 
-                {/* Botones de acción */}
-                <View style={styles.actionsContainer}>
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.editButton]}
-                        activeOpacity={0.8}
-                        onPress={() => alert('Funcionalidad de editar pendiente')}
-                    >
-                        <Ionicons name="create-outline" size={20} color="#FFFFFF" />
-                        <Text style={styles.actionButtonText}>EDITAR PERFIL</Text>
-                    </TouchableOpacity>
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                    <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
+                    <MaterialIcons name="logout" size={20} color="#F5FBE6" />
+                </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.logoutButton]}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                            // Aquí iría la lógica de cerrar sesión
-                            navigation.navigate('Login');
-                        }}
-                    >
-                        <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
-                        <Text style={styles.actionButtonText}>CERRAR SESIÓN</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Texto decorativo */}
                 <View style={styles.decorativeElements}>
                     <View style={styles.decorativeLine} />
-                    <Text style={styles.decorativeText}>✦</Text>
+                    <Text style={styles.decorativeText}>👤</Text>
                     <View style={styles.decorativeLine} />
                 </View>
             </ScrollView>
@@ -188,23 +194,19 @@ const styles = StyleSheet.create({
     scrollContainer: {
         flexGrow: 1,
         padding: 20,
-        paddingTop: 60,
+        paddingTop: 40,
     },
-    backButton: {
-        position: 'absolute',
-        top: 40,
-        left: 20,
-        zIndex: 10,
-        backgroundColor: 'rgba(44, 74, 94, 0.8)',
-        borderRadius: 20,
-        padding: 8,
+    centeredContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
     },
     mainTitle: {
         fontSize: 28,
         fontWeight: 'bold',
         textAlign: 'center',
         color: '#F5FBE6',
-        marginTop: 10,
         marginBottom: 10,
         letterSpacing: 1.5,
         textShadowColor: 'rgba(254, 127, 45, 0.7)',
@@ -218,132 +220,93 @@ const styles = StyleSheet.create({
         marginBottom: 30,
         fontWeight: "500",
     },
-    avatarContainer: {
-        alignItems: 'center',
+    profileCard: {
+        backgroundColor: 'rgba(35, 61, 77, 0.85)',
+        borderRadius: 20,
+        padding: 25,
+        borderWidth: 2,
+        borderColor: '#215E61',
+        shadowColor: '#FE7F2D',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 10,
         marginBottom: 30,
     },
-    avatarCircle: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: 'rgba(254, 127, 45, 0.9)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 15,
-        borderWidth: 4,
-        borderColor: '#F5FBE6',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 8,
-    },
-    avatarText: {
-        fontSize: 60,
-    },
-    userName: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#F5FBE6',
-        marginBottom: 5,
-    },
-    userUsername: {
-        fontSize: 16,
-        color: '#A0B3A8',
-        fontStyle: 'italic',
-    },
-    infoCard: {
-        backgroundColor: 'rgba(44, 74, 94, 0.8)',
-        borderRadius: 15,
-        padding: 20,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(254, 127, 45, 0.3)',
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#FE7F2D',
-        marginBottom: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(254, 127, 45, 0.3)',
-        paddingBottom: 8,
-    },
-    infoRow: {
+    infoSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
-        paddingVertical: 4,
+        marginBottom: 25,
+        paddingBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(245, 251, 230, 0.1)',
+    },
+    icon: {
+        marginRight: 15,
+    },
+    infoTextContainer: {
+        flex: 1,
     },
     infoLabel: {
-        fontSize: 14,
-        color: '#A0B3A8',
-        marginLeft: 10,
-        marginRight: 15,
-        width: 120,
-    },
-    infoValue: {
-        fontSize: 16,
-        color: '#F5FBE6',
-        fontWeight: '500',
-        flex: 1,
-    },
-    statsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 10,
-    },
-    statItem: {
-        alignItems: 'center',
-        flex: 1,
-    },
-    statCircle: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    statNumber: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#F5FBE6',
-    },
-    statLabel: {
         fontSize: 12,
         color: '#A0B3A8',
-        textAlign: 'center',
+        marginBottom: 5,
+        fontWeight: '600',
     },
-    actionsContainer: {
-        marginTop: 10,
-        marginBottom: 20,
-    },
-    actionButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 15,
-        borderRadius: 12,
-        marginBottom: 12,
-    },
-    editButton: {
-        backgroundColor: '#FE7F2D',
+    infoValue: {
+        fontSize: 18,
+        color: '#F5FBE6',
+        fontWeight: '500',
     },
     logoutButton: {
-        backgroundColor: '#FF5252',
+        backgroundColor: '#215E61',
+        borderRadius: 12,
+        paddingVertical: 15,
+        paddingHorizontal: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        marginBottom: 20,
+        shadowColor: '#FE7F2D',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 5,
     },
-    actionButtonText: {
-        color: '#FFFFFF',
+    logoutButtonText: {
         fontSize: 16,
         fontWeight: 'bold',
-        marginLeft: 10,
+        color: '#F5FBE6',
+        marginRight: 10,
+    },
+    loadingText: {
+        color: '#F5FBE6',
+        fontSize: 18,
+        textAlign: 'center',
+        marginTop: 20,
+    },
+    errorText: {
+        color: '#FE7F2D',
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    loginButton: {
+        backgroundColor: '#FE7F2D',
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 25,
+    },
+    loginButtonText: {
+        color: '#233D4D',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
     decorativeElements: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginVertical: 20,
+        marginVertical: 15,
     },
     decorativeLine: {
         flex: 1,
@@ -354,12 +317,5 @@ const styles = StyleSheet.create({
         color: '#F5FBE6',
         fontSize: 24,
         marginHorizontal: 15,
-    },
-    footerText: {
-        fontSize: 12,
-        color: '#A0B3A8',
-        textAlign: 'center',
-        marginBottom: 20,
-        fontStyle: 'italic',
     },
 });

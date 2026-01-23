@@ -1,7 +1,8 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Vibration, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Vibration, SafeAreaView, StatusBar, ActivityIndicator } from 'react-native';
 import { ref, set, push } from "firebase/database";
 import { db } from '../firebase/Config';
+import { supabase } from '../service/supabase/config';
 
 // Configuración
 const TIEMPO_JUEGO = 30;
@@ -9,15 +10,44 @@ const PUNTOS_POR_INSECTO = 10;
 const MAX_INSECTOS = 10;
 const TAMANO_INSECTO = 70;
 
-export default function GameScreen({ navigation, route }: any) {
-    // Recibir nombre de usuario si es necesario
-    const { nombreUsuario } = route.params || { nombreUsuario: 'Jugador' };
-
+export default function GameScreen({ navigation }: any) {
+    // Recibir nombre de usuario de supabase
+    const [userName, setUserName] = useState('');
+    const [loading, setLoading] = useState(true);
     // Estados del juego
     const [tiempoRestante, setTiempoRestante] = useState(TIEMPO_JUEGO);
     const [puntuacion, setPuntuacion] = useState(0);
     const [juegoActivo, setJuegoActivo] = useState(true);
     const [insectos, setInsectos] = useState<Array<{ id: number, x: string, y: string }>>([]);
+
+    //Funcion para buscar el usuario en supabase
+    useEffect(() => {
+        loadUserName();
+    }, []);
+
+    const loadUserName = async () => {
+        try {
+            // Obtener usuario autenticado
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user) {
+                // Buscar el nombre de usuario
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('username')
+                    .eq('id', user.id.replace(/-/g, ""))
+                    .single();
+
+                if (data && !error) {
+                    setUserName(data.username);
+                }
+            }
+        } catch (error) {
+            console.error("Error cargando nombre:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Función para guardar puntuación
     const guardarPuntuacionEnFirebase = async (puntuacion: number, usuario: string) => {
@@ -176,6 +206,9 @@ export default function GameScreen({ navigation, route }: any) {
         setJuegoActivo(false);
         Vibration.vibrate(200);
 
+        // Si el usuario está logueado, usar su nombre, sino usar "Jugador"
+        const nombreUsuario = userName || 'Jugador';
+
         // GUARDAR EN FIREBASE
         const resultado = await guardarPuntuacionEnFirebase(puntuacion, nombreUsuario);
 
@@ -203,7 +236,7 @@ export default function GameScreen({ navigation, route }: any) {
                 {
                     text: 'Ver puntuaciones',
                     onPress: () => {
-                        navigation.navigate('Puntuación');
+                        navigation.navigate('Puntuacion');
                     }
                 }
             ]
@@ -226,6 +259,18 @@ export default function GameScreen({ navigation, route }: any) {
         );
     };
 
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <StatusBar backgroundColor="#233D4D" />
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#FE7F2D" />
+                    <Text style={styles.loadingText}>Cargando datos del jugador...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar backgroundColor="#233D4D" />
@@ -234,7 +279,7 @@ export default function GameScreen({ navigation, route }: any) {
             <View style={styles.header}>
                 <View style={styles.playerInfo}>
                     <Text style={styles.playerLabel}>JUGADOR</Text>
-                    <Text style={styles.playerName}>{nombreUsuario}</Text>
+                    <Text style={styles.playerName}>{userName || 'Jugador'}</Text>
                 </View>
 
                 <View style={styles.scoreContainer}>
@@ -445,5 +490,16 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         letterSpacing: 1,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#233D4D',
+    },
+    loadingText: {
+        color: '#F5FBE6',
+        fontSize: 16,
+        marginTop: 20,
     },
 });
