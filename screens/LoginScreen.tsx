@@ -14,7 +14,7 @@ export default function LoginScreen({ navigation }: any) {
   useEffect(() => {
     revisarBiometria()
   }, [])
-  
+
   //estados para el modal de alerta personalizado
   const [showAlert, setShowAlert] = useState(false)
   const [alertTitle, setAlertTitle] = useState("")
@@ -70,9 +70,7 @@ export default function LoginScreen({ navigation }: any) {
 
       if (authData.session != null) {
         mostrarAlerta("¡Bienvenido!", `Has iniciado sesión, bienvenido de nuevo: ${username}`, 'success');
-        
-        // CORRECCIÓN: Usar authData en lugar de data
-        // Guardar el access_token en SecureStore
+        //guardar el access_token en SecureStore
         await loginExitoso(authData.session.access_token);
       }
 
@@ -92,11 +90,11 @@ export default function LoginScreen({ navigation }: any) {
     }
   }
 
-  async function biometria(){
+  async function biometria() {
     const authResultado = await LocalAuthentication.authenticateAsync({
       promptMessage: "Iniciar con biometria"
     })
-    if (authResultado.success){
+    if (authResultado.success) {
       console.log("Login Exitoso con biometría");
       //si biometria es exitosa verificar el token y navegar
       const tokenValido = await verificarToken();
@@ -111,7 +109,7 @@ export default function LoginScreen({ navigation }: any) {
   }
 
   //1. guardar token al hacer login exitoso
-  async function loginExitoso(accessToken: string){
+  async function loginExitoso(accessToken: string) {
     try {
       await SecureStore.setItemAsync("access_token", accessToken);
       console.log("Token guardado exitosamente");
@@ -127,16 +125,16 @@ export default function LoginScreen({ navigation }: any) {
       if (!token) {
         return false;
       }
-      
+
       //verificamos con supabase si el token es valido
       const { data, error } = await supabase.auth.getUser(token);
-      
+
       if (error || !data.user) {
         //token invalido o expirado
         await SecureStore.deleteItemAsync('access_token');
         return false;
       }
-      
+
       return true;
     } catch (error) {
       console.error("Error al verificar token:", error);
@@ -145,23 +143,23 @@ export default function LoginScreen({ navigation }: any) {
   }
 
   //2. revisar biometria al cargar la pantalla
-  async function revisarBiometria(){
+  async function revisarBiometria() {
     try {
       //verificar si hay un lector de huella digital antes de perdir biometria
       const compatible = await LocalAuthentication.hasHardwareAsync();
       const enrolled = await LocalAuthentication.isEnrolledAsync();
-      
+
       if (!compatible || !enrolled) {
         console.log("Biometría no disponible o no configurada");
         return;
       }
-      
+
       const token = await SecureStore.getItemAsync('access_token');
       if (!token) {
         console.log("No hay token guardado");
         return;
       }
-      
+
       //verificamos si el token es valido amntes de pedir la biometria
       const tokenValido = await verificarToken();
       if (tokenValido) {
@@ -222,7 +220,7 @@ export default function LoginScreen({ navigation }: any) {
             <View style={styles.inputUnderline} />
           </View>
         </View>
-        
+
         {/**boton para ingresar*/}
         <TouchableOpacity
           style={styles.loginButton}
@@ -247,7 +245,7 @@ export default function LoginScreen({ navigation }: any) {
           <Text style={styles.decorativeText}>⚔️</Text>
           <View style={styles.decorativeLine} />
         </View>
-        
+
         {/**texto adicional*/}
         <Text style={styles.footerText}>
           Al iniciar sesión, aceptas los términos y condiciones del juego

@@ -30,7 +30,7 @@ export default function FormScreen({ navigation }: any) {
     Vibration.vibrate(100);
   }
 
-  // Función para seleccionar imagen de galería
+  //funcion para seleccionar imagen de galeria
   const seleccionarDeGaleria = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -42,7 +42,7 @@ export default function FormScreen({ navigation }: any) {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: true,
-      aspect: [1, 1], // Cuadrado para avatar
+      aspect: [1, 1], //cuadrado
       quality: 0.8,
     });
 
@@ -51,7 +51,7 @@ export default function FormScreen({ navigation }: any) {
     }
   };
 
-  // Función para tomar foto con cámara
+  //funcion para tomar foto con camara
   const tomarFoto = async () => {
     const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
     const mediaPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -73,7 +73,7 @@ export default function FormScreen({ navigation }: any) {
     }
   };
 
-  // Subir imagen a Supabase Storage
+  //subir imagen a storage
   const subirImagen = async (uid: string): Promise<string | null> => {
     if (!image) return null;
 
@@ -81,7 +81,7 @@ export default function FormScreen({ navigation }: any) {
       const file = new File(image);
       const matrizBits = await file.bytes();
       
-      // Usar el UID del usuario como nombre del archivo
+      //usamos el uid del usuario como nombre del archivo
       const fileName = `avatar_${uid}.png`;
       const filePath = `avatar/${fileName}`;
       
@@ -90,7 +90,7 @@ export default function FormScreen({ navigation }: any) {
         .from('users')
         .upload(filePath, matrizBits, {
           contentType: 'image/png',
-          upsert: true // Sobreescribir si ya existe
+          upsert: true //sobreescribir si ya existe
         });
 
       if (error) {
@@ -120,7 +120,7 @@ export default function FormScreen({ navigation }: any) {
     })
 
     if (data.user != null) {
-      //quitamos los guiones del ID para evitar problemas con la base de datos
+      //quitamos los guiones del id para evitar problemas con la base de datos
       let id = data.user.id.replace(/-/g, "") //expresion que quita todos los guiones
 
       //pasamos limpio id a registrarUser
@@ -138,13 +138,13 @@ export default function FormScreen({ navigation }: any) {
     try {
       console.log("ID a insertar:", uid);     //depuracion
 
-      // 1. Subir imagen si existe
+      // 1. subir imagen si existe
       let avatarUrl = null;
       if (image) {
         avatarUrl = await subirImagen(uid);
       }
 
-      // 2. Guardar usuario en la tabla
+      // 2. guardar usuario en la tabla
       const { error } = await supabase
         .from('users')
         .insert({
@@ -153,7 +153,7 @@ export default function FormScreen({ navigation }: any) {
           nombre: nombre,
           edad: edad,
           correo: correo,
-          avatar_url: avatarUrl, // Agregar URL de la imagen
+          avatar_url: avatarUrl, // agregar url de la imagen
         });
 
       if (error) {
@@ -190,7 +190,7 @@ export default function FormScreen({ navigation }: any) {
       return;
     }
 
-    // Validaciones
+    //validaciones
     if (!correo || !password || !username || !nombre) {
       mostrarAlerta(
         "Campos incompletos",
@@ -200,7 +200,7 @@ export default function FormScreen({ navigation }: any) {
       return;
     }
 
-    // Validar formato de email
+    //validar formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(correo)) {
       mostrarAlerta(
@@ -211,7 +211,7 @@ export default function FormScreen({ navigation }: any) {
       return;
     }
 
-    // Validar contraseña mínima
+    //validar contraseña minima
     if (password.length < 6) {
       mostrarAlerta(
         "Contraseña débil",
@@ -244,7 +244,7 @@ export default function FormScreen({ navigation }: any) {
         <Text style={styles.mainTitle}>Formulario de registro</Text>
         <Text style={styles.subtitle}>Ingresa tus datos!!!</Text>
 
-        {/**Sección de imagen de perfil */}
+        {/**seccion de imagen de perfil*/}
         <View style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
             {image ? (
