@@ -1,23 +1,25 @@
-import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native'
+import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, Vibration, View, Image, ActivityIndicator } from 'react-native'
 import React, { useState } from 'react'
 import { supabase } from '../service/supabase/config'
 import AlertPersonalizado from '../components/AlertPersonalizado'
+import * as ImagePicker from 'expo-image-picker';
+import { File } from 'expo-file-system';
 
 export default function FormScreen({ navigation }: any) {
-
   const [nombre, setNombre] = useState("")
   const [edad, setEdad] = useState(0)
   const [correo, setCorreo] = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [acceptTerms, setAcceptTerms] = useState(false)
+  const [image, setImage] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   //estados para el modal de alerta personalizado
   const [showAlert, setShowAlert] = useState(false)
   const [alertTitle, setAlertTitle] = useState("")
   const [alertMessage, setAlertMessage] = useState("")
   const [alertType, setAlertType] = useState("warning")
-
 
   //funcion mostrarAlerta
   const mostrarAlerta = (titulo: string, mensaje: string, tipo = "warning") => {
@@ -28,7 +30,90 @@ export default function FormScreen({ navigation }: any) {
     Vibration.vibrate(100);
   }
 
+  // Función para seleccionar imagen de galería
+  const seleccionarDeGaleria = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      mostrarAlerta("Permiso requerido", "Se requiere permiso para acceder a la galería.", 'error');
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [1, 1], // Cuadrado para avatar
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
+
+  // Función para tomar foto con cámara
+  const tomarFoto = async () => {
+    const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+    const mediaPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!cameraPermission.granted || !mediaPermission.granted) {
+      mostrarAlerta("Permisos requeridos", "Se requieren permisos de cámara y almacenamiento", 'error');
+      return;
+    }
+
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
+
+  // Subir imagen a Supabase Storage
+  const subirImagen = async (uid: string): Promise<string | null> => {
+    if (!image) return null;
+
+    try {
+      const file = new File(image);
+      const matrizBits = await file.bytes();
+      
+      // Usar el UID del usuario como nombre del archivo
+      const fileName = `avatar_${uid}.png`;
+      const filePath = `avatar/${fileName}`;
+      
+      const { data, error } = await supabase
+        .storage
+        .from('users')
+        .upload(filePath, matrizBits, {
+          contentType: 'image/png',
+          upsert: true // Sobreescribir si ya existe
+        });
+
+      if (error) {
+        console.error('Error subiendo imagen:', error);
+        return null;
+      }
+
+      //obtenems la url publicca
+      const { data: urlData } = supabase.storage
+        .from('users')
+        .getPublicUrl(filePath);
+        
+      return urlData.publicUrl;
+      
+    } catch (error) {
+      console.error('Error:', error);
+      return null;
+    }
+  };
+
   async function guardarUsuario() {
+    setLoading(true);
+    
     const { data, error } = await supabase.auth.signUp({
       email: correo,
       password: password,
@@ -38,20 +123,28 @@ export default function FormScreen({ navigation }: any) {
       //quitamos los guiones del ID para evitar problemas con la base de datos
       let id = data.user.id.replace(/-/g, "") //expresion que quita todos los guiones
 
-      //pasamos limpio ida registrarUser
+      //pasamos limpio id a registrarUser
       await registrarUser(id, username)
 
       //mover la navegacion dentro del bloque de exito de registrarUser
       //la navegacion se hara en registrarUser despuus de mostrar la alerta
     } else {
-      Alert.alert("Error", error?.message || "Error al crear usuario");
+      setLoading(false);
+      mostrarAlerta("Error", error?.message || "Error al crear usuario", 'error');
     }
   }
 
-  async function registrarUser(uid: String, username: String) {
+  async function registrarUser(uid: string, username: string) {
     try {
       console.log("ID a insertar:", uid);     //depuracion
 
+      // 1. Subir imagen si existe
+      let avatarUrl = null;
+      if (image) {
+        avatarUrl = await subirImagen(uid);
+      }
+
+      // 2. Guardar usuario en la tabla
       const { error } = await supabase
         .from('users')
         .insert({
@@ -60,12 +153,15 @@ export default function FormScreen({ navigation }: any) {
           nombre: nombre,
           edad: edad,
           correo: correo,
+          avatar_url: avatarUrl, // Agregar URL de la imagen
         });
 
       if (error) {
         console.error("Error Supabase:", error);    //depuracion
+        setLoading(false);
         mostrarAlerta("Error", `No se pudo registrar: ${error.message}`, 'error');
       } else {
+        setLoading(false);
         mostrarAlerta(
           "¡Registro Exitoso!",
           `Usuario: ${username}\nHa sido registrado correctamente.`,
@@ -79,6 +175,7 @@ export default function FormScreen({ navigation }: any) {
       }
     } catch (error) {
       console.error("Error catch:", error);   //depuracion
+      setLoading(false);
       mostrarAlerta("Error", "Ocurrió un error inesperado", 'error');
     }
   }
@@ -114,6 +211,16 @@ export default function FormScreen({ navigation }: any) {
       return;
     }
 
+    // Validar contraseña mínima
+    if (password.length < 6) {
+      mostrarAlerta(
+        "Contraseña débil",
+        "La contraseña debe tener al menos 6 caracteres.",
+        'warning'
+      );
+      return;
+    }
+
     guardarUsuario()
   }
 
@@ -136,6 +243,47 @@ export default function FormScreen({ navigation }: any) {
         {/**titulos de la ventana*/}
         <Text style={styles.mainTitle}>Formulario de registro</Text>
         <Text style={styles.subtitle}>Ingresa tus datos!!!</Text>
+
+        {/**Sección de imagen de perfil */}
+        <View style={styles.avatarSection}>
+          <View style={styles.avatarContainer}>
+            {image ? (
+              <Image source={{ uri: image }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarPlaceholderText}>Foto</Text>
+              </View>
+            )}
+          </View>
+          
+          <View style={styles.imageButtonsContainer}>
+            <TouchableOpacity 
+              style={styles.imageButton} 
+              onPress={seleccionarDeGaleria}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.imageButtonText}>Galería</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.imageButton} 
+              onPress={tomarFoto}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.imageButtonText}>Cámara</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {image && (
+            <TouchableOpacity 
+              style={styles.removeImageButton} 
+              onPress={() => setImage(null)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.removeImageButtonText}>❌ Eliminar foto</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/**contenedor de los inputs*/}
         <View style={styles.inputsContainer}>
@@ -217,12 +365,19 @@ export default function FormScreen({ navigation }: any) {
 
         {/**boton para registar se */}
         <TouchableOpacity
-          style={styles.registerButton}
+          style={[styles.registerButton, loading && styles.registerButtonDisabled]}
           activeOpacity={0.8}
           onPress={() => register()}
+          disabled={loading}
         >
-          <Text style={styles.registerButtonText}>COMENZAR AVENTURA</Text>
-          <View style={styles.buttonGlow} />
+          {loading ? (
+            <ActivityIndicator color="#233D4D" size="small" />
+          ) : (
+            <>
+              <Text style={styles.registerButtonText}>COMENZAR AVENTURA</Text>
+              <View style={styles.buttonGlow} />
+            </>
+          )}
         </TouchableOpacity>
 
         {/*decoracion*/}
@@ -241,7 +396,7 @@ export default function FormScreen({ navigation }: any) {
           onClose={() => setShowAlert(false)}
           title={alertTitle}
           message={alertMessage}
-          type={"info"}
+          type={'info'}
         />
       </ScrollView>
     </View>
@@ -301,30 +456,14 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-  },
-  formContainer: {
-    backgroundColor: 'rgba(35, 61, 77, 0.85)',
-    borderRadius: 20,
-    padding: 25,
-    marginHorizontal: 20,
-    marginVertical: 30,
-    borderWidth: 2,
-    borderColor: '#215E61',
-    shadowColor: '#FE7F2D',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-    width: '90%',
-    maxWidth: 400,
-    alignSelf: 'center',
+    paddingHorizontal: 20,
   },
   mainTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
     color: '#F5FBE6',
-    marginTop: 19,
+    marginTop: 40,
     marginBottom: 10,
     letterSpacing: 1.5,
     textShadowColor: 'rgba(254, 127, 45, 0.7)',
@@ -335,8 +474,75 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     color: '#FE7F2D',
-    marginBottom: 16,
+    marginBottom: 20,
     fontWeight: "500",
+  },
+  // Estilos para la sección de avatar
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  avatarContainer: {
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  avatarImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: '#FE7F2D',
+  },
+  avatarPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(245, 251, 230, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#215E61',
+    borderStyle: 'dashed',
+  },
+  avatarPlaceholderText: {
+    fontSize: 16,
+    color: '#A0B3A8',
+    fontWeight: '600',
+  },
+  imageButtonsContainer: {
+    flexDirection: 'row',
+    gap: 15,
+    marginBottom: 10,
+  },
+  imageButton: {
+    backgroundColor: '#215E61',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FE7F2D',
+  },
+  imageButtonText: {
+    color: '#F5FBE6',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  removeImageButton: {
+    backgroundColor: 'rgba(254, 127, 45, 0.2)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FE7F2D',
+  },
+  removeImageButtonText: {
+    color: '#FE7F2D',
+    fontWeight: '600',
+    fontSize: 12,
   },
   inputsContainer: {
     width: "100%",
@@ -392,7 +598,7 @@ const styles = StyleSheet.create({
   registerButton: {
     backgroundColor: '#FE7F2D',
     borderRadius: 12,
-    paddingVertical: 9,
+    paddingVertical: 16,
     alignItems: 'center',
     marginTop: 1,
     marginBottom: 10,
@@ -403,6 +609,10 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
     position: 'relative',
+  },
+  registerButtonDisabled: {
+    backgroundColor: '#A0B3A8',
+    opacity: 0.7,
   },
   registerButtonText: {
     fontSize: 18,
