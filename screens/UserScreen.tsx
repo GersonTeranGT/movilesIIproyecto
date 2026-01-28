@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../service/supabase/config';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as SecureStore from 'expo-secure-store';
 
 export default function UserScreen({ navigation }: any) {
     const [userData, setUserData] = useState<any>(null);
@@ -39,7 +40,8 @@ export default function UserScreen({ navigation }: any) {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        navigation.navigate('Login');
+        await SecureStore.deleteItemAsync('token')
+        navigation.navigate('Welcome');
     };
 
     if (loading) {

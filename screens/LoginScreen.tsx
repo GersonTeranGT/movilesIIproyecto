@@ -1,20 +1,25 @@
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import AlertPersonalizado from '../components/AlertPersonalizado'
 import { supabase } from '../service/supabase/config'
+//Biometria
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 
 export default function LoginScreen({ navigation }: any) {
 
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
 
-
+  useEffect(() => {
+    revisarBiometria()
+  }, [])
+  
   //estados para el modal de alerta personalizado
   const [showAlert, setShowAlert] = useState(false)
   const [alertTitle, setAlertTitle] = useState("")
   const [alertMessage, setAlertMessage] = useState("")
   const [alertType, setAlertType] = useState("success")
-
 
   //mostraAlerta personalizada
   const mostrarAlerta = (titulo: string, mensaje: string, tipo = 'success') => {
@@ -24,6 +29,7 @@ export default function LoginScreen({ navigation }: any) {
     setShowAlert(true)
     Vibration.vibrate(100)
   }
+
   async function login() {
     if (username.trim() === '') {
       mostrarAlerta("Campo vacío", "Por favor ingresa tu nombre de usuario", 'warning')
@@ -64,7 +70,10 @@ export default function LoginScreen({ navigation }: any) {
 
       if (authData.session != null) {
         mostrarAlerta("¡Bienvenido!", `Has iniciado sesión, bienvenido de nuevo: ${username}`, 'success');
-        //navegacion desde cierreAlerta cuando alertType sea success
+        
+        // CORRECCIÓN: Usar authData en lugar de data
+        // Guardar el access_token en SecureStore
+        await loginExitoso(authData.session.access_token);
       }
 
     } catch (error) {
@@ -80,6 +89,91 @@ export default function LoginScreen({ navigation }: any) {
     //navegar si el login fue exitoso
     if (alertType === 'success') {
       navigation.navigate("Tab");
+    }
+  }
+
+  async function biometria(){
+    const authResultado = await LocalAuthentication.authenticateAsync({
+      promptMessage: "Iniciar con biometria"
+    })
+    if (authResultado.success){
+      console.log("Login Exitoso con biometría");
+      //si biometria es exitosa verificar el token y navegar
+      const tokenValido = await verificarToken();
+      if (tokenValido) {
+        navigation.navigate("Tab");
+      } else {
+        mostrarAlerta("Error", "Sesión expirada. Por favor inicia sesión con tus credenciales nuevamente.", 'error');
+      }
+    } else {
+      mostrarAlerta("Error", "Autenticación biométrica fallida", 'error');
+    }
+  }
+
+  //1. guardar token al hacer login exitoso
+  async function loginExitoso(accessToken: string){
+    try {
+      await SecureStore.setItemAsync("access_token", accessToken);
+      console.log("Token guardado exitosamente");
+    } catch (error) {
+      console.error("Error al guardar token:", error);
+    }
+  }
+
+  //3. verifica si el token es valido
+  async function verificarToken() {
+    try {
+      const token = await SecureStore.getItemAsync('access_token');
+      if (!token) {
+        return false;
+      }
+      
+      //verificamos con supabase si el token es valido
+      const { data, error } = await supabase.auth.getUser(token);
+      
+      if (error || !data.user) {
+        //token invalido o expirado
+        await SecureStore.deleteItemAsync('access_token');
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error al verificar token:", error);
+      return false;
+    }
+  }
+
+  //2. revisar biometria al cargar la pantalla
+  async function revisarBiometria(){
+    try {
+      //verificar si hay un lector de huella digital antes de perdir biometria
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      
+      if (!compatible || !enrolled) {
+        console.log("Biometría no disponible o no configurada");
+        return;
+      }
+      
+      const token = await SecureStore.getItemAsync('access_token');
+      if (!token) {
+        console.log("No hay token guardado");
+        return;
+      }
+      
+      //verificamos si el token es valido amntes de pedir la biometria
+      const tokenValido = await verificarToken();
+      if (tokenValido) {
+        console.log("Token válido, solicitando biometría...");
+        //podemos pedir biometria automaticamente o mostrar un boton
+        //biometria();
+      } else {
+        console.log("Token inválido o expirado");
+        await SecureStore.deleteItemAsync('access_token');
+      }
+    } catch (error) {
+      console.error("Error en revisarBiometria:", error);
     }
   }
 
@@ -102,7 +196,6 @@ export default function LoginScreen({ navigation }: any) {
         {/**titulo y subtitulo*/}
         <Text style={styles.mainTitle}>Login</Text>
         <Text style={styles.subtitle}>Ingresa tus datos para empezar</Text>
-
 
         {/**contenedros de inputs*/}
         <View style={styles.inputsContainer}>
@@ -129,13 +222,23 @@ export default function LoginScreen({ navigation }: any) {
             <View style={styles.inputUnderline} />
           </View>
         </View>
-        {/**boton para inresar*/}
+        
+        {/**boton para ingresar*/}
         <TouchableOpacity
           style={styles.loginButton}
           activeOpacity={0.8}
           onPress={() => login()}
         >
           <Text style={styles.loginButtonText}>INGRESAR</Text>
+        </TouchableOpacity>
+        <Text style={styles.decorativeText}>o</Text>
+        {/**boton para biometría (opcional)*/}
+        <TouchableOpacity
+          style={styles.biometricButton}
+          activeOpacity={0.8}
+          onPress={() => biometria()}
+        >
+          <Text style={styles.biometricButtonText}>Ingresar con huella</Text>
         </TouchableOpacity>
 
         {/**decoracion*/}
@@ -144,6 +247,7 @@ export default function LoginScreen({ navigation }: any) {
           <Text style={styles.decorativeText}>⚔️</Text>
           <View style={styles.decorativeLine} />
         </View>
+        
         {/**texto adicional*/}
         <Text style={styles.footerText}>
           Al iniciar sesión, aceptas los términos y condiciones del juego
@@ -158,7 +262,6 @@ export default function LoginScreen({ navigation }: any) {
         message={alertMessage}
         type={'info'}
       />
-
     </View>
   )
 }
@@ -360,4 +463,16 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontWeight: '500',
   },
+  biometricButton: {
+    backgroundColor: '#2D5B6B',
+    padding: 15,
+    borderRadius: 12,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  biometricButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  }
 })
