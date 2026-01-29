@@ -1,6 +1,9 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Vibration, SafeAreaView, StatusBar, ActivityIndicator } from 'react-native';
-import { ref, set, push } from "firebase/database";
+import { 
+  View, Text, StyleSheet, TouchableOpacity, Alert, 
+  Vibration, SafeAreaView, StatusBar, ActivityIndicator 
+} from 'react-native';
+import { ref, set, push, query, orderByChild, equalTo, get } from "firebase/database";
 import { db } from '../firebase/Config';
 import { supabase } from '../service/supabase/config';
 
@@ -19,6 +22,11 @@ export default function GameScreen({ navigation }: any) {
     const [puntuacion, setPuntuacion] = useState(0);
     const [juegoActivo, setJuegoActivo] = useState(true);
     const [insectos, setInsectos] = useState<Array<{ id: number, x: string, y: string }>>([]);
+
+    // Referencias
+    const insectoCounter = useRef(0);
+    const juegoTerminadoRef = useRef(false);
+    const posicionesUsadas = useRef<Set<number>>(new Set());
 
     //Funcion para buscar el usuario en supabase
     useEffect(() => {
@@ -49,23 +57,60 @@ export default function GameScreen({ navigation }: any) {
         }
     };
 
-    // Función para guardar puntuación
-    const guardarPuntuacionEnFirebase = async (puntuacion: number, usuario: string) => {
+    // NUEVA FUNCIÓN: Guardar O Actualizar puntuación
+    const guardarOActualizarPuntuacion = async (puntuacion: number, usuario: string) => {
         try {
-            // Usar push() para generar ID automático
-            const nuevaPuntuacionRef = push(ref(db, 'puntuaciones/'));
-
-            await set(nuevaPuntuacionRef, {
-                usuario: usuario,
-                puntuacion: puntuacion,
-                fecha: new Date().toISOString()
-            });
-
-            console.log('✅ Puntuación guardada correctamente');
-            return true;
+            // 1. Buscar si el usuario ya tiene una puntuación guardada
+            const puntuacionesRef = ref(db, 'puntuaciones/');
+            const consulta = query(puntuacionesRef, orderByChild('usuario'), equalTo(usuario));
+            
+            const snapshot = await get(consulta);
+            
+            if (snapshot.exists()) {
+                // El usuario ya tiene puntuación(es) previas
+                let puntuacionExistente = null;
+                let puntuacionKey = null;
+                let puntuacionAnterior = 0;
+                
+                snapshot.forEach((childSnapshot) => {
+                    const data = childSnapshot.val();
+                    puntuacionAnterior = data.puntuacion;
+                    puntuacionExistente = data;
+                    puntuacionKey = childSnapshot.key;
+                    return true; // Solo el primero
+                });
+                
+                // 2. Comparar puntuaciones
+                if (puntuacion > puntuacionAnterior) {
+                    // Actualizar con nueva puntuación (más alta)
+                    await set(ref(db, `puntuaciones/${puntuacionKey}`), {
+                        ...puntuacionExistente,
+                        puntuacion: puntuacion,
+                        fecha: new Date().toISOString(),
+                        timestamp: Date.now()
+                    });
+                    console.log(`✅ Puntuación actualizada para ${usuario}: ${puntuacionAnterior} → ${puntuacion}`);
+                    return { tipo: 'actualizada', anterior: puntuacionAnterior, nueva: puntuacion };
+                } else {
+                    // No actualizar (la nueva es menor o igual)
+                    console.log(`ℹ️  Puntuación no actualizada para ${usuario}: ${puntuacion} ≤ ${puntuacionAnterior}`);
+                    return { tipo: 'no_actualizada', anterior: puntuacionAnterior, nueva: puntuacion };
+                }
+            } else {
+                // 3. Usuario no tiene puntuación previa - Crear nueva
+                const nuevaPuntuacionRef = push(ref(db, 'puntuaciones/'));
+                await set(nuevaPuntuacionRef, {
+                    usuario: usuario,
+                    puntuacion: puntuacion,
+                    fecha: new Date().toISOString(),
+                    timestamp: Date.now()
+                });
+                console.log(`✅ Nueva puntuación creada para ${usuario}: ${puntuacion}`);
+                return { tipo: 'nueva', anterior: 0, nueva: puntuacion };
+            }
         } catch (error) {
-            console.error('❌ Error guardando puntuación:', error);
-            return false;
+            console.error('❌ Error guardando/actualizando puntuación:', error);
+            return null;
         }
     };
 
@@ -83,7 +128,6 @@ export default function GameScreen({ navigation }: any) {
     // Efecto para reiniciar cuando se desmonta o sale de la pantalla
     useEffect(() => {
         return () => {
-            // Esto se ejecuta cuando el componente se desmonta
             reiniciarJuegoCompleto();
         };
     }, []);
@@ -91,23 +135,13 @@ export default function GameScreen({ navigation }: any) {
     // Efecto para escuchar cuando la pantalla pierde el foco
     useEffect(() => {
         const unsubscribe = navigation.addListener('blur', () => {
-            // Cuando la pantalla pierde el foco (navegamos a otra)
             reiniciarJuegoCompleto();
         });
-
         return unsubscribe;
     }, [navigation]);
 
-
-
-    // Referencias
-    const insectoCounter = useRef(0);
-    const juegoTerminadoRef = useRef(false);
-    const posicionesUsadas = useRef<Set<number>>(new Set());
-
     // Posiciones predefinidas (más alejadas de los bordes)
     const posicionesPredefinidas = [
-        // Centro - área segura
         { x: '25%', y: '30%' },
         { x: '50%', y: '25%' },
         { x: '75%', y: '30%' },
@@ -184,7 +218,6 @@ export default function GameScreen({ navigation }: any) {
 
     // Inicializar juego
     useEffect(() => {
-        // Crear primeros insectos
         setTimeout(() => crearInsecto(), 300);
         setTimeout(() => crearInsecto(), 600);
         setTimeout(() => crearInsecto(), 900);
@@ -200,7 +233,7 @@ export default function GameScreen({ navigation }: any) {
         }
     }, [juegoActivo, insectos.length]);
 
-    // Terminar juego
+    // Terminar juego (MODIFICADA)
     const terminarJuego = async () => {
         juegoTerminadoRef.current = true;
         setJuegoActivo(false);
@@ -209,12 +242,26 @@ export default function GameScreen({ navigation }: any) {
         // Si el usuario está logueado, usar su nombre, sino usar "Jugador"
         const nombreUsuario = userName || 'Jugador';
 
-        // GUARDAR EN FIREBASE
-        const resultado = await guardarPuntuacionEnFirebase(puntuacion, nombreUsuario);
+        // GUARDAR O ACTUALIZAR EN FIREBASE
+        const resultado = await guardarOActualizarPuntuacion(puntuacion, nombreUsuario);
+        
+        let mensaje = `Puntuación: ${puntuacion} puntos\n\nJugador: ${nombreUsuario}\n`;
+        
+        if (resultado) {
+            if (resultado.tipo === 'actualizada') {
+                mensaje += `🎉 ¡NUEVO RÉCORD!\nAnterior: ${resultado.anterior} pts\nNuevo: ${resultado.nueva} pts`;
+            } else if (resultado.tipo === 'nueva') {
+                mensaje += '✅ Primera puntuación guardada';
+            } else {
+                mensaje += `📊 Puntuación actual: ${resultado.anterior} pts\n(No superaste tu récord)`;
+            }
+        } else {
+            mensaje += '⚠️ Error guardando puntuación';
+        }
 
         Alert.alert(
             '🎯 ¡Juego Terminado!',
-            `Puntuación: ${puntuacion} puntos\n\nJugador: ${nombreUsuario}\n${resultado ? '✅ Puntuación guardada' : '⚠️ Error guardando'}`,
+            mensaje,
             [
                 {
                     text: 'Jugar otra vez',
@@ -298,7 +345,7 @@ export default function GameScreen({ navigation }: any) {
                 </View>
             </View>
 
-            {/* ÁREA DE JUEGO (OCUPA LA MAYOR PARTE) */}
+            {/* ÁREA DE JUEGO */}
             <View style={styles.gameArea}>
                 {insectos.map(insecto => (
                     <TouchableOpacity
