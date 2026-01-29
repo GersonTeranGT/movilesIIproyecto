@@ -18,7 +18,7 @@ export default function WelcomeScreen() {
 
     return (
         <ImageBackground
-            source={require('../assets/images/fondo-gamer.jpg')}
+            source={require('../assets/images/Fondo_Bichos2.png')}
             style={styles.container}
             resizeMode="cover" // Esto hace que la imagen cubra toda la pantalla sin deformarse
         >
@@ -63,16 +63,17 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     topContainer: {
-        flex: 0.50, // Ocupa el 50% superior de la pantalla
+        flex: 0.56, // Ocupa el 50% superior de la pantalla
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 25,
     },
     title: {
-        fontSize: 51,
+        fontSize: 52,
         fontWeight: 'bold',
-        color: '#FFF5F2',
+        color: '#2D3C59',
         marginBottom: 10,
+        marginBlockStart: 150,
         
     },
     subtitle: {
