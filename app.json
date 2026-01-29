@@ -3,7 +3,7 @@
     "name": "proyecto-moviles",
     "slug": "proyecto-moviles",
     "version": "1.0.0",
-    "orientation": "all",
+    "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
