@@ -17,13 +17,10 @@ export default function PuntuacionesScreen({ navigation }: any) {
 
   const loadAllData = async () => {
     try {
-      // Cargar datos en paralelo
       await Promise.all([
         loadUsersFromSupabase(),
         loadScoresFromFirebase()
       ]);
-
-      // Combinar los datos después de cargar ambos
       combineData();
     } catch (error) {
       console.error("Error cargando datos:", error);
@@ -65,10 +62,11 @@ export default function PuntuacionesScreen({ navigation }: any) {
     return [];
   };
 
+  // MODIFICADA: Filtrar solo la mejor puntuación por usuario
   const loadScoresFromFirebase = () => {
     return new Promise((resolve) => {
       const puntuacionesRef = ref(db, 'puntuaciones/');
-      const consulta = query(puntuacionesRef, orderByChild('puntuacion'), limitToLast(50));
+      const consulta = query(puntuacionesRef, orderByChild('puntuacion'), limitToLast(100));
 
       onValue(consulta, (snapshot) => {
         const data = snapshot.val();
@@ -79,11 +77,27 @@ export default function PuntuacionesScreen({ navigation }: any) {
             id, ...data[id]
           }));
 
-          // Ordenar por puntuación descendente
-          arrayData.sort((a, b) => b.puntuacion - a.puntuacion);
+          // 1. Agrupar por usuario y quedarse solo con la mejor puntuación
+          const mejoresPorUsuario = new Map();
+          
+          arrayData.forEach(puntuacion => {
+            const usuario = puntuacion.usuario;
+            const puntuacionActual = puntuacion.puntuacion;
+            
+            if (!mejoresPorUsuario.has(usuario) || 
+                puntuacionActual > mejoresPorUsuario.get(usuario).puntuacion) {
+              mejoresPorUsuario.set(usuario, puntuacion);
+            }
+          });
 
-          setPuntuaciones(arrayData);
-          resolve(arrayData);
+          // 2. Convertir mapa a array
+          const mejoresArray = Array.from(mejoresPorUsuario.values());
+          
+          // 3. Ordenar por puntuación descendente
+          mejoresArray.sort((a, b) => b.puntuacion - a.puntuacion);
+
+          setPuntuaciones(mejoresArray);
+          resolve(mejoresArray);
         } else {
           setPuntuaciones([]);
           resolve([]);
@@ -156,6 +170,7 @@ export default function PuntuacionesScreen({ navigation }: any) {
     ]}>
       <View style={styles.posicionContainer}>
         <Text style={styles.posicion}>#{index + 1}</Text>
+        {item.esUsuarioActual && <Text style={styles.youBadge}>TÚ</Text>}
       </View>
 
       <View style={styles.infoContainer}>
@@ -203,7 +218,10 @@ export default function PuntuacionesScreen({ navigation }: any) {
             : 'Inicia sesión para ver tu perfil'}
         </Text>
         <Text style={styles.subtitulo}>
-          Total: {displayData.length} puntuaciones
+          Total: {displayData.length} jugadores
+        </Text>
+        <Text style={styles.noteText}>
+          (Se muestra solo la mejor puntuación de cada jugador)
         </Text>
       </View>
 
@@ -211,14 +229,14 @@ export default function PuntuacionesScreen({ navigation }: any) {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>📭 No hay puntuaciones aún</Text>
           <Text style={styles.emptySubtext}>
-            ¡Sé el primero en jugar!
+            ¡Sé el primero en jugar y establecer un récord!
           </Text>
         </View>
       ) : (
         <FlatList
           data={displayData}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => `${item.usuario}-${item.puntuacion}`}
           contentContainerStyle={styles.listContent}
         />
       )}
@@ -251,7 +269,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingVertical: 25,
+    paddingVertical: 20,
     paddingHorizontal: 20,
     backgroundColor: '#2C4A5E',
     borderBottomWidth: 2,
@@ -269,6 +287,13 @@ const styles = StyleSheet.create({
     color: '#A0B3A8',
     textAlign: 'center',
     marginTop: 4,
+  },
+  noteText: {
+    fontSize: 12,
+    color: '#7A8D8A',
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   loadingContainer: {
     flex: 1,
@@ -310,6 +335,16 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#F5FBE6',
+  },
+  youBadge: {
+    fontSize: 10,
+    color: '#4CAF50',
+    fontWeight: 'bold',
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 2,
   },
   infoContainer: {
     flex: 1,

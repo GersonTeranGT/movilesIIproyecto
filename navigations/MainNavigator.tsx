@@ -29,8 +29,8 @@ function MyStack() {
             }}
         >
             <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="Formulario" component={FormScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Formulario" component={FormScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Tab" component={MyTab} options={{ headerShown: false }} />
         </Stack.Navigator>
     )
