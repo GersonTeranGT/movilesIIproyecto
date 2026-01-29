@@ -18,7 +18,7 @@ export default function WelcomeScreen() {
 
     return (
         <ImageBackground
-            source={require('../../movilesIIproyecto/img/fondo-gamer.jpg')}
+            source={require('../assets/images/fondo-gamer.jpg')}
             style={styles.container}
             resizeMode="cover" // Esto hace que la imagen cubra toda la pantalla sin deformarse
         >
